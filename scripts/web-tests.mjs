@@ -1,0 +1,296 @@
+import { test } from 'node:test';
+import assert from 'node:assert/strict';
+import { readFile } from 'node:fs/promises';
+import vm from 'node:vm';
+import { createHash } from 'node:crypto';
+import { initSync, BrowserGame, BrowserAudio } from '../dist/web/pkg/zelda_mobile.js';
+import { keyAction, padAction, bindControls } from '../web/input.js';
+import { AudioOutput } from '../web/audio.js';
+
+const prefix = 'zelda-mobile-rust:v1:';
+class MemoryStorage {
+  values = new Map();
+  failWrites = false;
+  get length() { return this.values.size; }
+  key(index) { return [...this.values.keys()][index] ?? null; }
+  getItem(key) { return this.values.get(key) ?? null; }
+  setItem(key, value) {
+    if (this.failWrites) throw new Error('Quota exceeded');
+    this.values.set(key, value);
+  }
+  removeItem(key) { this.values.delete(key); }
+}
+// web-sys checks the global object's Window identity before reading Storage.
+globalThis.Window = class { static [Symbol.hasInstance](value) { return value === globalThis; } };
+globalThis.window = globalThis;
+initSync({ module: await readFile(new URL('../dist/web/pkg/zelda_mobile_bg.wasm', import.meta.url)) });
+
+function fresh() {
+  globalThis.localStorage = new MemoryStorage();
+  return new BrowserGame();
+}
+function pulse(game, action) {
+  game.input('test:tap', action);
+  game.input('test:tap', -1);
+}
+function enter(game, slot = 0) {
+  for (let now = 10; now <= 140; now += 10) game.advance(now);
+  pulse(game, 4);
+  for (let now = 150; now <= 280; now += 10) game.advance(now);
+  assert.equal(game.state(), 30, 'save selection');
+  for (let i = 0; i < slot; i++) pulse(game, 1);
+  pulse(game, 4);
+  for (let now = 290; now <= 560; now += 10) game.advance(now);
+  assert.equal(game.state(), 1, `playing slot ${slot + 1}`);
+}
+
+test('actual Wasm runs the opening and inventory with embedded resources', () => {
+  const game = fresh();
+  try {
+    assert.equal(game.state(), 0);
+    assert.equal(game.pixels().length, 240 * 320 * 4);
+    enter(game);
+    const before = game.pixels();
+    // Native reference/opening-replay.json at 560 ms; includes the whole map.
+    assert.equal(createHash('sha256').update(before).digest('hex'),
+      'f7b7dccef46268f0f720ba553704b573e163d9eee10571a9976ae1ee2df9a151',
+      'browser opening pixels exactly match the native renderer');
+    game.input('touch:movement', 1);
+    game.input('touch:action', 4);
+    for (let now = 570; now <= 1120; now += 10) game.advance(now);
+    game.input('touch:action', -1);
+    game.input('touch:movement', -1);
+    assert.notDeepEqual(game.pixels(), before, 'movement/action changes the screen');
+    pulse(game, 6);
+    game.advance(1260);
+    assert.equal(game.state(), 1);
+    assert.ok(JSON.parse(game.commands()).includes('Return'), 'inventory exposes Return');
+    game.back();
+    game.advance(1400);
+    assert.equal(game.state(), 1);
+    assert.deepEqual(JSON.parse(game.warnings()), []);
+  } finally { game.free(); }
+});
+
+test('Wasm replays original menu navigation', async () => {
+  const game = fresh();
+  try {
+    let now = 0;
+    const steps = JSON.parse(await readFile(new URL('../reference/menu-replay.json', import.meta.url)));
+    for (const step of steps) {
+      const actions = ['Up', 'Down', 'Left', 'Right', 'Primary', 'Secondary', 'Menu', 'SoftLeft', 'SoftRight'];
+      if (step.type === 'wait') {
+        const end = now + step.ms;
+        while (now < end) { now = Math.min(now + 10, end); game.advance(now); }
+      } else if (step.type === 'press') pulse(game, actions.indexOf(step.action));
+      else if (step.type === 'release') game.clear_input();
+      else if (step.type === 'assert_state') assert.equal(game.state(), step.state);
+    }
+  } finally { game.free(); }
+});
+
+test('all three browser slots persist independently and survive reconstruction', () => {
+  let game = fresh();
+  const storage = globalThis.localStorage;
+  const saved = [];
+  try {
+    for (let slot = 0; slot < 3; slot++) {
+      if (slot) { game.free(); game = new BrowserGame(); }
+      enter(game, slot);
+      game.checkpoint();
+      const name = `ZeldaSave${slot ? slot + 1 : ''}`;
+      const record = JSON.parse(storage.getItem(prefix + name));
+      assert.deepEqual(record.slice(0, 4), [90, 77, 82, 49]);
+      assert.ok(record.length > 100);
+      saved.push([...record]);
+      for (let i = 0; i < saved.length; i++) {
+        assert.deepEqual(JSON.parse(storage.getItem(prefix + `ZeldaSave${i ? i + 1 : ''}`)), saved[i]);
+      }
+    }
+    game.free();
+    game = new BrowserGame();
+    enter(game, 2);
+    assert.deepEqual(JSON.parse(game.warnings()), []);
+    assert.ok(storage.getItem(prefix + 'ZeldaSettings'));
+  } finally { game.free(); }
+});
+
+test('unavailable and full storage remain playable with visible warning messages', () => {
+  globalThis.localStorage = null;
+  let game = new BrowserGame();
+  try {
+    assert.match(game.warnings(), /only for this session/);
+    enter(game);
+    game.checkpoint();
+  } finally { game.free(); }
+  game = fresh();
+  try {
+    globalThis.localStorage.failWrites = true;
+    enter(game);
+    game.checkpoint();
+    assert.match(game.warnings(), /could not be saved/);
+    assert.deepEqual(JSON.parse(game.warnings()), [], 'warnings are consumed');
+  } finally { game.free(); }
+});
+
+test('damaged browser records are reported without breaking startup', () => {
+  globalThis.localStorage = new MemoryStorage();
+  globalThis.localStorage.setItem(prefix + 'ZeldaSettings', JSON.stringify([1, 2, 3]));
+  globalThis.localStorage.setItem(prefix + 'ZeldaSave', 'not JSON');
+  const game = new BrowserGame();
+  try { assert.match(game.warnings(), /damaged|could not be loaded/); }
+  finally { game.free(); }
+});
+
+test('full storage still loads existing saves before reporting write failures', () => {
+  let game = fresh();
+  try { enter(game); game.checkpoint(); } finally { game.free(); }
+  game = new BrowserGame();
+  let expected;
+  try {
+    game.advance(140); pulse(game, 4); game.advance(280);
+    expected = game.pixels();
+  } finally { game.free(); }
+  globalThis.localStorage.failWrites = true;
+  game = new BrowserGame();
+  try {
+    game.advance(140); pulse(game, 4); game.advance(280);
+    assert.deepEqual(game.pixels(), expected, 'saved slot is available even when storage is full');
+    assert.match(game.warnings(), /cannot accept new saves/);
+  } finally { game.free(); }
+});
+
+test('Save & exit persists the active adventure and signals the browser host', () => {
+  const game = fresh();
+  try {
+    enter(game);
+    pulse(game, 6);
+    game.advance(630);
+    assert.equal(JSON.parse(game.commands())[1], 'Save & exit');
+    pulse(game, 8);
+    game.advance(700);
+    assert.equal(game.has_quit(), true);
+    assert.ok(globalThis.localStorage.getItem(prefix + 'ZeldaSave'));
+  } finally { game.free(); }
+});
+
+test('input rejects invalid actions and handles shared sources and clearing', () => {
+  const game = fresh();
+  try {
+    assert.throws(() => game.input('invalid', 99));
+    game.input('key:Z', 4);
+    game.input('touch:1', 4);
+    game.input('key:Z', -1);
+    game.input('touch:1', -1);
+    game.clear_input();
+    game.advance(140);
+    assert.equal(game.state(), 30);
+  } finally { game.free(); }
+});
+
+test('the actual Rust synth renders music and packed effects at browser sample rates', async () => {
+  const font = await readFile(new URL('../assets/audio/GeneralUser-GS.sf2', import.meta.url));
+  for (const rate of [44100, 48000]) {
+    const audio = new BrowserAudio(font, rate);
+    try {
+      audio.command(JSON.stringify([{ type: 'play', data: { id: 1, name: 'Sound/midi/intro.mid', position: 0, loops: -1, volume: 80 } }]));
+      const samples = audio.render(4096);
+      assert.equal(samples.length, 8192);
+      assert.ok(samples.every(Number.isFinite));
+      assert.ok(samples.some(value => Math.abs(value) > .00001));
+      audio.command(JSON.stringify([{ type: 'stop', data: 1 }]));
+      assert.ok(audio.render(128).every(value => value === 0));
+      audio.command(JSON.stringify([{ type: 'play', data: { id: 2, name: 'Sound/Effects.wav', position: 0, loops: 1, volume: 100 } }]));
+      assert.ok(audio.render(4096).some(value => value !== 0));
+      assert.throws(() => audio.render(10000));
+    } finally { audio.free(); }
+  }
+});
+
+test('audio loading retains current music and discards stale effects', () => {
+  const output = new AudioOutput(() => {}, () => {});
+  output.send([{ type: 'play', data: { id: 4, name: 'track.mid', volume: 50 } }, { type: 'play', data: { id: 5, name: 'effects.wav' } }]);
+  output.send([{ type: 'volume', data: [4, 25] }]);
+  assert.equal(output.music.data.volume, 25);
+  output.send([{ type: 'stop', data: 4 }]);
+  assert.equal(output.music, null);
+});
+
+test('unsupported browser audio reports failure without rejecting gameplay', async () => {
+  const warnings = [];
+  const output = new AudioOutput(() => {}, message => warnings.push(message));
+  await output.setEnabled(true);
+  assert.equal(output.enabled, false);
+  assert.equal(output.loading, null);
+  assert.match(warnings[0], /keep playing/);
+});
+
+test('D-pad sectors, neutral zone, and keyboard mappings', () => {
+  const rect = { left: 10, top: 20, width: 150, height: 150 };
+  assert.equal(padAction(85, 25, rect), 0);
+  assert.equal(padAction(85, 160, rect), 1);
+  assert.equal(padAction(15, 95, rect), 2);
+  assert.equal(padAction(155, 95, rect), 3);
+  assert.equal(padAction(85, 95, rect), -1);
+  assert.equal(padAction(-100, 95, rect), -1);
+  assert.equal(keyAction('KeyZ'), 4);
+  assert.equal(keyAction('Enter'), 6);
+  assert.equal(keyAction('Tab'), undefined);
+});
+
+test('touch holds, sliding, pointer cancellation, and keyboard sharing', () => {
+  const windowEvents = new EventTarget();
+  globalThis.addEventListener = windowEvents.addEventListener.bind(windowEvents);
+  class Button extends EventTarget {
+    constructor(action) { super(); this.dataset = { action: String(action) }; this.classList = { toggle() {} }; this.disabled = false; }
+    closest() { return this; }
+    setPointerCapture(id) { this.capture = id; }
+    hasPointerCapture(id) { return this.capture === id; }
+    releasePointerCapture() { this.capture = null; }
+  }
+  const buttons = Array.from({ length: 9 }, (_, i) => new Button(i));
+  const pad = new Button(-1);
+  pad.contains = button => buttons.slice(0, 4).includes(button) || button === pad;
+  pad.getBoundingClientRect = () => ({ left: 0, top: 0, width: 150, height: 150 });
+  const deck = new EventTarget();
+  deck.querySelector = () => pad;
+  deck.querySelectorAll = () => buttons;
+  const edges = [];
+  const control = bindControls(deck, { active: () => true, input: (...edge) => edges.push(edge), back() {} });
+  function send(type, target, props) {
+    const event = new Event(type, { cancelable: true });
+    Object.defineProperty(event, 'target', { value: target });
+    Object.assign(event, props);
+    deck.dispatchEvent(event);
+  }
+  send('pointerdown', buttons[0], { pointerId: 1, pointerType: 'touch', clientX: 75, clientY: 10 });
+  send('pointerdown', buttons[4], { pointerId: 2, pointerType: 'touch' });
+  send('pointermove', pad, { pointerId: 1, clientX: 140, clientY: 75 });
+  send('pointercancel', buttons[4], { pointerId: 2 });
+  assert.deepEqual(edges, [['pointer:1', 0], ['pointer:2', 4], ['pointer:1', 3], ['pointer:2', -1]]);
+  control.clear();
+  assert.deepEqual(edges.at(-1), ['pointer:1', -1]);
+});
+
+test('audio worklet produces stereo PCM, silence on underrun, and ignores stale buffers', async () => {
+  let Processor;
+  const sandbox = {
+    AudioWorkletProcessor: class { port = {}; }, Float32Array,
+    registerProcessor: (_name, processor) => { Processor = processor; },
+  };
+  vm.runInNewContext(await readFile(new URL('../web/audio-worklet.js', import.meta.url), 'utf8'), sandbox);
+  const processor = new Processor();
+  const requests = [];
+  const source = { postMessage: request => requests.push(request) };
+  processor.port.onmessage({ data: { type: 'connect', port: source } });
+  assert.equal(requests.length, 3);
+  assert.equal(processor.pending, 3072);
+  source.onmessage({ data: { generation: 0, samples: new Float32Array([.25, -.25, .5, -.5]) } });
+  const left = new Float32Array(128), right = new Float32Array(128);
+  processor.process([], [[left, right]]);
+  assert.deepEqual([...left.slice(0, 3)], [.25, .5, 0]);
+  assert.deepEqual([...right.slice(0, 3)], [-.25, -.5, 0]);
+  processor.port.onmessage({ data: { type: 'flush' } });
+  source.onmessage({ data: { generation: 0, samples: new Float32Array([1, 1]) } });
+  assert.equal(processor.available, 0);
+});

@@ -19,3 +19,10 @@ assign a new license to the original game or its resources.
   The native control settings screen uses the Mac's installed Arial fonts.
 
 The packaged app includes dependency license files under `Contents/Resources/Licenses`.
+
+The browser build shares the maintained Rust game and original resource atlases.
+It uses [wasm-bindgen](https://github.com/wasm-bindgen/wasm-bindgen) (MIT/Apache-2.0)
+for browser bindings, the same RustySynth synthesizer in a Web Worker, and Web
+Audio for output. SDL3 and the macOS system fonts are not part of the web build.
+The GeneralUser GS license is included beside the downloadable soundfont and
+linked from the browser credits page.

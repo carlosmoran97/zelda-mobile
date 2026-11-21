@@ -20,8 +20,11 @@ impl Bitmap {
         }
     }
     pub fn load(path: &std::path::Path) -> Result<Self, String> {
-        let im = image::open(path)
-            .map_err(|e| format!("{}: {e}", path.display()))?
+        Self::decode(&std::fs::read(path).map_err(|e| format!("{}: {e}", path.display()))?)
+    }
+    pub fn decode(bytes: &[u8]) -> Result<Self, String> {
+        let im = image::load_from_memory_with_format(bytes, image::ImageFormat::Png)
+            .map_err(|e| e.to_string())?
             .into_rgba8();
         Ok(Self {
             w: im.width() as i32,
@@ -361,31 +364,30 @@ struct FontAtlas {
     bitmap: Surface,
 }
 pub struct Fonts {
-    regular: fontdue::Font,
-    bold: fontdue::Font,
+    regular: Option<fontdue::Font>,
+    bold: Option<fontdue::Font>,
     cache: HashMap<(char, u8, bool), (fontdue::Metrics, Vec<u8>)>,
     atlases: HashMap<(u8, bool), FontAtlas>,
 }
 impl Fonts {
     pub fn new(assets: &std::path::Path) -> Result<Self, String> {
-        let load = |p: &str| -> Result<fontdue::Font, String> {
-            fontdue::Font::from_bytes(
-                std::fs::read(p).map_err(|e| e.to_string())?,
-                fontdue::FontSettings::default(),
-            )
-            .map_err(str::to_string)
+        Self::from_assets(&crate::assets::FileAssets(assets.to_owned()))
+    }
+    pub fn from_assets(assets: &dyn crate::assets::Assets) -> Result<Self, String> {
+        #[cfg(not(target_arch = "wasm32"))]
+        let load = |p: &str| -> Option<fontdue::Font> {
+            fontdue::Font::from_bytes(std::fs::read(p).ok()?, fontdue::FontSettings::default()).ok()
         };
-        let entries: Vec<AtlasMetrics> = serde_json::from_slice(
-            &std::fs::read(assets.join("fonts/metrics.json")).map_err(|e| e.to_string())?,
-        )
-        .map_err(|e| e.to_string())?;
+        let entries: Vec<AtlasMetrics> =
+            serde_json::from_slice(&assets.read("fonts/metrics.json")?)
+                .map_err(|e| e.to_string())?;
         let mut atlases = HashMap::new();
         for metrics in entries {
             if metrics.widths.len() != 256 {
                 return Err("Invalid font metrics".into());
             }
-            let bitmap = Rc::new(RefCell::new(Bitmap::load(
-                &assets.join("fonts").join(&metrics.image),
+            let bitmap = Rc::new(RefCell::new(Bitmap::decode(
+                &assets.read(&format!("fonts/{}", metrics.image))?,
             )?));
             atlases.insert(
                 (metrics.point_size, metrics.style & 1 != 0),
@@ -393,10 +395,28 @@ impl Fonts {
             );
         }
         Ok(Self {
-            regular: load("/System/Library/Fonts/Supplemental/Arial.ttf")?,
-            bold: load("/System/Library/Fonts/Supplemental/Arial Bold.ttf")?,
+            #[cfg(not(target_arch = "wasm32"))]
+            regular: load("/System/Library/Fonts/Supplemental/Arial.ttf"),
+            #[cfg(not(target_arch = "wasm32"))]
+            bold: load("/System/Library/Fonts/Supplemental/Arial Bold.ttf"),
+            #[cfg(target_arch = "wasm32")]
+            regular: None,
+            #[cfg(target_arch = "wasm32")]
+            bold: None,
             cache: HashMap::new(),
             atlases,
+        })
+    }
+    fn atlas(&self, size: u8, bold: bool) -> Option<&FontAtlas> {
+        self.atlases.get(&(size, bold)).or_else(|| {
+            if self.regular.is_some() && self.bold.is_some() {
+                return None;
+            }
+            self.atlases
+                .iter()
+                .filter(|((_, b), _)| *b == bold)
+                .min_by_key(|((s, _), _)| s.abs_diff(size))
+                .map(|(_, a)| a)
         })
     }
     pub fn size(size: i32) -> u8 {
@@ -407,10 +427,12 @@ impl Fonts {
         }
     }
     pub fn height(&self, size: u8) -> i32 {
-        if let Some(a) = self.atlases.get(&(size, false)) {
+        if let Some(a) = self.atlas(size, false) {
             a.metrics.height
         } else {
             self.regular
+                .as_ref()
+                .unwrap()
                 .horizontal_line_metrics(size as f32)
                 .unwrap()
                 .new_line_size
@@ -418,13 +440,15 @@ impl Fonts {
         }
     }
     pub fn width(&self, text: &str, size: u8, bold: bool) -> i32 {
-        if let Some(a) = self.atlases.get(&(size, bold)) {
+        if let Some(a) = self.atlas(size, bold) {
             return text
                 .chars()
                 .map(|c| a.metrics.widths[if (c as usize) < 256 { c as usize } else { 63 }])
                 .sum();
         }
-        let f = if bold { &self.bold } else { &self.regular };
+        let f = if bold { &self.bold } else { &self.regular }
+            .as_ref()
+            .unwrap();
         text.chars()
             .map(|c| f.metrics(c, size as f32).advance_width.round() as i32)
             .sum()
@@ -441,7 +465,7 @@ impl Fonts {
     ) {
         let width = self.width(text, size, bold);
         let height = self.height(size);
-        if let Some(a) = self.atlases.get(&(size, bold)) {
+        if let Some(a) = self.atlas(size, bold) {
             let (mut x, mut y) = anchor_position(x, y, width, height, anchor);
             if anchor & 64 != 0 {
                 y -= a.metrics.baseline;
@@ -471,7 +495,9 @@ impl Fonts {
             return;
         }
         let (mut x, mut y) = anchor_position(x + g.tx, y + g.ty, width, height, anchor);
-        let font = if bold { &self.bold } else { &self.regular };
+        let font = if bold { &self.bold } else { &self.regular }
+            .as_ref()
+            .unwrap();
         let ascent = font
             .horizontal_line_metrics(size as f32)
             .unwrap()
