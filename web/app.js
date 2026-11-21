@@ -18,10 +18,10 @@ function notice(message) {
 }
 $('#dismiss').addEventListener('click', () => { $('#notice').hidden = true; });
 const audio = new AudioOutput(() => {
-  sound.textContent = audio.enabled ? (audio.ready ? 'Sound on' : 'Sound…') : 'Sound off';
   sound.setAttribute('aria-pressed', String(audio.enabled));
   sound.setAttribute('aria-label', audio.enabled ? 'Mute sound' : 'Enable sound');
-  $('#status').textContent = audio.enabled && !audio.ready ? 'Loading sound…' : 'Saves stay in this browser';
+  sound.setAttribute('aria-busy', String(audio.enabled && !audio.ready));
+  sound.title = audio.enabled && !audio.ready ? 'Loading sound…' : sound.getAttribute('aria-label');
 }, notice);
 
 function showOverlay(title, text, button) {
@@ -68,7 +68,7 @@ function pause() {
     game.clear_input();
     game.checkpoint();
     readWarnings();
-    if (!ended && !broken) showOverlay('Adventure paused', 'Take your time. Tap Resume to continue.', 'Resume');
+    if (!ended && !broken) showOverlay('Game paused', '', 'Resume');
   });
   void audio.setPaused(true);
 }
@@ -85,6 +85,11 @@ resume.addEventListener('click', () => {
   void audio.setPaused(false);
   if (!audio.loading && !audio.ready) void audio.setEnabled(true);
 });
+// iOS can interrupt audio independently of the game's pause state. Retry on the
+// next gesture, including touch controls whose pointerdown cancels mouse clicks.
+for (const type of ['touchend', 'click', 'keydown']) {
+  window.addEventListener(type, () => { void audio.resume().catch(error => audio.fail(error)); }, { passive: true });
+}
 
 function tick(now) {
   if (running) attempt(() => {
@@ -100,7 +105,7 @@ function tick(now) {
       game.clear_input();
       running = false;
       void audio.setPaused(true);
-      showOverlay('Until next time', 'Play again to return to your save slots.', 'Play again');
+      showOverlay('Game saved', '', 'Play again');
     }
   });
   requestAnimationFrame(tick);
@@ -116,7 +121,6 @@ try {
   });
   draw();
   readWarnings();
-  showOverlay('Zelda Mobile', 'A familiar adventure, ready for your thumbs.', 'Play');
-  $('#status').textContent = 'Saves stay in this browser';
+  showOverlay('Zelda Mobile', '', 'Play');
   requestAnimationFrame(tick);
 } catch (error) { fatal(error); }

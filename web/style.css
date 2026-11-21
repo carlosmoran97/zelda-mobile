@@ -6,24 +6,26 @@ button { font: inherit; color: inherit; cursor: pointer; border: 1px solid #5364
 button:focus-visible, a:focus-visible { outline: 3px solid #f2cd73; outline-offset: 3px; }
 button:disabled { opacity: .38; cursor: default; }
 [hidden] { display: none !important; }
-.handheld { width: min(100%, 520px); height: 100svh; height: 100dvh; min-height: 530px; margin: auto; padding: max(8px, env(safe-area-inset-top)) max(14px, env(safe-area-inset-right)) max(8px, env(safe-area-inset-bottom)) max(14px, env(safe-area-inset-left)); display: grid; grid-template-columns: minmax(0, 1fr); grid-template-rows: 40px minmax(0, 1fr) 218px 22px; gap: 8px; }
+.handheld { width: min(100%, 520px); height: 100svh; height: 100dvh; min-height: 530px; margin: auto; padding: max(8px, env(safe-area-inset-top)) max(14px, env(safe-area-inset-right)) max(8px, env(safe-area-inset-bottom)) max(14px, env(safe-area-inset-left)); display: grid; grid-template-columns: minmax(0, 1fr); grid-template-rows: 40px minmax(0, 1fr) 218px; gap: 8px; }
 .topbar { display: flex; align-items: center; justify-content: space-between; }
 .brand { font-family: Georgia, serif; letter-spacing: .09em; font-size: 1.05rem; color: #eddb9b; white-space: nowrap; }
 .brand > span:last-child { color: #a6b9a9; font: 600 .65rem ui-sans-serif, system-ui, sans-serif; letter-spacing: .14em; }
 .triforce { font-size: 1.15rem; margin-right: 5px; color: #e8c36e; }
-.utility { min-height: 44px; min-width: 78px; border: 0; background: transparent; padding: 6px; color: #b7c8b9; font-size: .875rem; }
+.utility { min-height: 44px; min-width: 44px; display: grid; place-items: center; border: 0; background: transparent; padding: 6px; color: #b7c8b9; }
+.utility svg { width: 24px; height: 24px; }
+.utility[aria-pressed="false"] .sound-on, .utility[aria-pressed="true"] .sound-off { display: none; }
+.utility[aria-busy="true"] { opacity: .6; }
 .stage { min-height: 0; min-width: 0; display: flex; align-items: center; justify-content: center; container-type: size; }
 .screen { width: min(100cqw, 75cqh); aspect-ratio: 3 / 4; position: relative; background: #000; box-shadow: 0 0 0 1px #8e8c59, 0 0 0 5px #0b1712, 0 12px 34px #0005; }
 canvas { display: block; width: 100%; height: 100%; image-rendering: pixelated; object-fit: contain; }
 .overlay { position: absolute; inset: 0; background: #0c1c17f5; display: flex; align-items: center; justify-content: center; flex-direction: column; text-align: center; padding: 18px; }
 .crest { color: #e3be69; font-size: 2.5rem; text-shadow: 0 0 30px #c9a34850; }
 h1 { font: 1.55rem Georgia, serif; color: #f1dfa5; margin: 14px 0 4px; }
-.overlay p { font-size: .95rem; color: #b3c4b7; line-height: 1.5; margin: 8px 0 20px; max-width: 24ch; }
+.overlay p { font-size: .95rem; color: #b3c4b7; line-height: 1.5; min-height: 3em; margin: 8px 0 20px; max-width: 24ch; }
 .start { min-height: 46px; min-width: 140px; border-color: #e2c078; background: #ddc080; color: #17271c; border-radius: 4px; padding: 10px 22px; font-weight: 700; }
 .control-deck { touch-action: none; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; }
-.commands { display: grid; grid-template-columns: 1fr 68px 1fr; align-items: center; gap: 12px; height: 56px; }
+.commands { display: grid; grid-template-columns: 1fr 1fr; align-items: center; gap: 12px; height: 56px; }
 .command { background: #20372a; border-color: #4a5b44; border-radius: 7px; padding: 8px; min-height: 44px; font-size: .875rem; }
-.menu { min-height: 44px; font-size: .75rem; letter-spacing: .08em; background: transparent; border: 0; color: #c7cbb6; }
 .play-controls { display: flex; align-items: center; justify-content: space-between; height: 162px; padding: 4px 7px; gap: 14px; }
 .dpad { width: 150px; height: 150px; display: grid; flex-shrink: 0; grid-template-columns: repeat(3, 50px); grid-template-rows: repeat(3, 50px); filter: drop-shadow(0 5px 0 #08110d); touch-action: none; }
 .direction { background: #344739; border: 1px solid #59694e; font-size: 1.05rem; color: #ccceb0; padding: 0; }
@@ -36,14 +38,11 @@ h1 { font: 1.55rem Georgia, serif; color: #f1dfa5; margin: 14px 0 4px; }
 .action { width: 62px; height: 62px; flex-shrink: 0; border-radius: 50%; font: bold 1.6rem Georgia, serif; box-shadow: 0 5px 0 #09130e, inset 0 1px 0 #ffffff20; }
 .primary { align-self: flex-start; margin-top: 13px; background: #8b3934; border-color: #bb6555; color: #ffe3bd; }
 .secondary { background: #3c5260; border-color: #6e8a8e; color: #dbe7d6; }
-.action-caption { position: absolute; bottom: 4px; right: 0; color: #849a83; font-size: .6rem; letter-spacing: .12em; white-space: nowrap; }
 [data-action].pressed { filter: brightness(1.4); transform: translateY(3px); box-shadow: none; }
-footer { display: flex; justify-content: space-between; align-items: center; font-size: .75rem; color: #859c8c; }
-footer a { color: #b2b99c; text-decoration: none; padding: 4px 0 4px 12px; }
 #notice { position: fixed; z-index: 5; bottom: max(12px, env(safe-area-inset-bottom)); left: 50%; transform: translateX(-50%); width: min(92%, 460px); display: flex; align-items: center; gap: 10px; background: #e8d7a1; color: #282a19; border-radius: 8px; padding: 12px 14px; box-shadow: 0 4px 30px #0008; font-size: .875rem; line-height: 1.4; }
 #dismiss { background: none; color: #282a19; border: 0; min-width: 44px; min-height: 44px; font-size: 1.5rem; }
 @media (max-width: 360px) { .handheld { padding-left: 10px; padding-right: 10px; } .play-controls { padding-left: 0; padding-right: 0; gap: 10px; } .dpad { width: 135px; height: 135px; grid-template-columns: repeat(3, 45px); grid-template-rows: repeat(3, 45px); } .action { width: 55px; height: 55px; } .action-buttons { gap: 8px; } .brand { font-size: .9rem; } }
-@media (min-height: 850px) { .handheld { grid-template-rows: 44px minmax(0, 1fr) 230px 26px; gap: 12px; } }
+@media (min-height: 850px) { .handheld { grid-template-rows: 44px minmax(0, 1fr) 230px; gap: 12px; } }
 .credits { max-width: 760px; margin: 40px auto; padding: 24px; line-height: 1.6; }
 .credits a { color: #eddb9b; }
 .credits pre { font: inherit; white-space: pre-wrap; overflow-wrap: anywhere; }

@@ -19,12 +19,29 @@ export class AudioOutput {
       this.worker.postMessage({ type: 'commands', commands: this.enabled ? commands : commands.filter(c => c.type !== 'play' || c.data.name.endsWith('.mid')) });
     }
   }
+  async resume() {
+    if (!this.context || !this.enabled || this.paused) return;
+    // Safari otherwise treats Web Audio as ambient sound and obeys the iPhone's
+    // silent switch, even after the player explicitly enables sound.
+    try {
+      if (globalThis.navigator?.audioSession) globalThis.navigator.audioSession.type = 'playback';
+    } catch { /* Audio sessions are optional; keep ordinary Web Audio working. */ }
+    if (this.context.state === 'running') return;
+    // Start a source during the gesture, before any async work. This also unlocks
+    // Safari when the worklet and instrument bank have not finished loading yet.
+    const source = this.context.createBufferSource();
+    source.buffer = this.context.createBuffer(1, 1, this.context.sampleRate);
+    source.connect(this.context.destination);
+    source.onended = () => source.disconnect();
+    source.start();
+    await this.context.resume();
+  }
   async initialize() {
     const Context = globalThis.AudioContext || globalThis.webkitAudioContext;
     if (!Context || !globalThis.AudioWorkletNode) throw new Error('This browser does not support game audio.');
     this.context = new Context({ latencyHint: 'interactive' });
     // Resume immediately within the user gesture, before fetching any assets.
-    if (!this.paused) await this.context.resume();
+    await this.resume();
     await this.context.audioWorklet.addModule(new URL('./audio-worklet.js', import.meta.url));
     this.node = new AudioWorkletNode(this.context, 'zelda-audio', { numberOfInputs: 0, numberOfOutputs: 1, outputChannelCount: [2] });
     this.node.onprocessorerror = () => { void this.fail(new Error('Audio playback stopped unexpectedly. Tap Sound to retry.')); };
@@ -61,11 +78,11 @@ export class AudioOutput {
       try {
         if (!this.loading) this.loading = this.initialize();
         // An existing suspended context also needs resuming during this gesture.
-        if (this.context && !this.paused) await this.context.resume();
+        else await this.resume();
         await this.loading;
         if (this.enabled && !this.paused) {
           this.node.port.postMessage({ type: 'flush' });
-          await this.context.resume();
+          await this.resume();
         }
       } catch (error) { await this.fail(error); }
     } else {
@@ -79,7 +96,7 @@ export class AudioOutput {
     try {
       if (this.context) {
         if (paused || !this.enabled) await this.context.suspend();
-        else await this.context.resume();
+        else await this.resume();
       }
     } catch (error) { await this.fail(error); }
   }

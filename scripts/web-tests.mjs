@@ -216,6 +216,126 @@ test('audio loading retains current music and discards stale effects', () => {
   assert.equal(output.music, null);
 });
 
+function mockBrowserAudio(t, session) {
+  const events = [];
+  const contexts = [];
+  function install(name, value) {
+    const original = Object.getOwnPropertyDescriptor(globalThis, name);
+    Object.defineProperty(globalThis, name, { configurable: true, value });
+    t.after(() => {
+      if (original) Object.defineProperty(globalThis, name, original);
+      else delete globalThis[name];
+    });
+  }
+  install('navigator', { audioSession: session });
+  install('AudioContext', class {
+    constructor() {
+      this.state = 'suspended';
+      this.sampleRate = 48000;
+      this.destination = {};
+      this.audioWorklet = { addModule: async () => { events.push('load-worklet'); } };
+      contexts.push(this);
+    }
+    createBuffer(channels, frames, rate) {
+      assert.deepEqual([channels, frames, rate], [1, 1, 48000]);
+      return {};
+    }
+    createBufferSource() {
+      return {
+        connect() { events.push('connect-source'); },
+        start() { events.push('start-source'); this.onended(); },
+        disconnect() { events.push('disconnect-source'); },
+      };
+    }
+    async resume() { events.push('resume'); this.state = 'running'; }
+    async suspend() { events.push('suspend'); this.state = 'suspended'; }
+    async close() { this.state = 'closed'; }
+  });
+  install('AudioWorkletNode', class {
+    port = { postMessage() {} };
+    connect() {}
+  });
+  install('Worker', class {
+    postMessage(message) {
+      if (message.type === 'init') queueMicrotask(() => this.onmessage({ data: { type: 'ready' } }));
+    }
+    terminate() {}
+  });
+  install('MessageChannel', class { port1 = {}; port2 = {}; });
+  return { events, contexts };
+}
+
+test('Safari playback is selected and a source starts before asynchronous audio loading', async t => {
+  const { events, contexts } = mockBrowserAudio(t, {
+    set type(value) { events.push(`session:${value}`); },
+  });
+  const warnings = [];
+  const output = new AudioOutput(() => {}, message => warnings.push(message));
+  await output.setPaused(false);
+  const loading = output.setEnabled(true);
+  assert.deepEqual(events, ['session:playback', 'connect-source', 'start-source', 'disconnect-source', 'resume'],
+    'playback and unlocking happen synchronously inside the Play gesture');
+  await loading;
+  assert.ok(events.indexOf('resume') < events.indexOf('load-worklet'));
+  assert.equal(contexts[0].state, 'running');
+  assert.equal(output.ready, true);
+  assert.deepEqual(warnings, []);
+});
+
+test('audio recovers from Safari interruption without overriding mute or pause', async t => {
+  const { contexts, events } = mockBrowserAudio(t, { type: 'auto' });
+  const output = new AudioOutput(() => {}, () => {});
+  await output.setPaused(false);
+  await output.setEnabled(true);
+  const context = contexts[0];
+  context.state = 'interrupted';
+  const recovery = output.resume();
+  assert.equal(context.state, 'running', 'resume is requested during the recovery gesture');
+  await recovery;
+  assert.equal(contexts.length, 1, 'the synth and context survive interruption');
+  await output.setPaused(true);
+  events.length = 0;
+  await output.resume();
+  assert.deepEqual(events, [], 'touching controls while paused cannot unlock audio');
+  await output.setPaused(false);
+  assert.equal(context.state, 'running');
+  await output.setEnabled(false);
+  events.length = 0;
+  await output.resume();
+  assert.deepEqual(events, [], 'a later gesture cannot undo Sound off');
+});
+
+test('enabling sound while paused defers playback until the Resume gesture', async t => {
+  const session = { type: 'auto' };
+  const { contexts, events } = mockBrowserAudio(t, session);
+  const output = new AudioOutput(() => {}, () => {});
+  await output.setEnabled(true);
+  assert.equal(output.ready, true);
+  assert.equal(session.type, 'auto');
+  assert.equal(contexts[0].state, 'suspended');
+  assert.ok(!events.includes('start-source'));
+  const resumed = output.setPaused(false);
+  assert.equal(session.type, 'playback');
+  assert.ok(events.includes('start-source'));
+  await resumed;
+  assert.equal(contexts[0].state, 'running');
+});
+
+test('browsers without a usable Audio Session API still play through Web Audio', async t => {
+  const { contexts } = mockBrowserAudio(t, undefined);
+  const warnings = [];
+  const output = new AudioOutput(() => {}, message => warnings.push(message));
+  await output.setPaused(false);
+  await output.setEnabled(true);
+  assert.equal(output.ready, true);
+  assert.equal(contexts[0].state, 'running');
+  await output.setPaused(true);
+  globalThis.navigator.audioSession = { set type(_) { throw new Error('Unsupported session'); } };
+  await output.setPaused(false);
+  assert.equal(contexts[0].state, 'running');
+  assert.deepEqual(warnings, []);
+});
+
 test('unsupported browser audio reports failure without rejecting gameplay', async () => {
   const warnings = [];
   const output = new AudioOutput(() => {}, message => warnings.push(message));

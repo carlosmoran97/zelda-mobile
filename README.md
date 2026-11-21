@@ -32,13 +32,13 @@ If you are starting from the source code, follow the [build guide](docs/DEVELOPM
 
 The [web version](https://carlosmoran97.github.io/zelda-mobile/) runs the same
 Rust game through WebAssembly. It is designed for portrait mobile browsers, with
-a D-pad, A/B buttons, Menu, and the game's current command buttons beneath the
+a D-pad, A/B buttons, and the game's current command buttons beneath the
 screen. Hold a direction and an action together to move and use equipment.
 Keyboard controls below also work in the browser.
 
 Tap **Play** to begin and enable audio. The instrument bank downloads separately,
-so you can play while sound loads. **Sound** toggles audio. Switching apps pauses
-the game; tap **Resume** when you return.
+so you can play while sound loads. The speaker icon toggles audio. Switching apps
+pauses the game; tap **Resume** when you return.
 
 The three web save slots and settings stay in this browser on this device.
 Explicit saves and backgrounding checkpoint your progress. Clearing site data

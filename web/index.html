@@ -13,7 +13,13 @@
   <main class="handheld" aria-label="Zelda Mobile game">
     <header class="topbar">
       <span class="brand"><span class="triforce" aria-hidden="true">▲</span> ZELDA <span>MOBILE</span></span>
-      <button id="sound" class="utility" aria-label="Enable sound" aria-pressed="false">Sound off</button>
+      <button id="sound" class="utility" aria-label="Enable sound" aria-pressed="false" title="Enable sound">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
+          <path d="M11 5 6 9H3v6h3l5 4Z" />
+          <g class="sound-on"><path d="M15 8a6 6 0 0 1 0 8M18 5a10 10 0 0 1 0 14" /></g>
+          <g class="sound-off"><path d="m16 9 6 6m0-6-6 6" /></g>
+        </svg>
+      </button>
     </header>
     <section class="stage" aria-label="Game screen">
       <div class="screen">
@@ -29,7 +35,6 @@
     <section class="control-deck" aria-label="Touch controls">
       <div class="commands">
         <button data-action="7" id="command-left" class="command" disabled>Left command</button>
-        <button data-action="6" class="menu" aria-label="Inventory and game menu">MENU</button>
         <button data-action="8" id="command-right" class="command" disabled>Right command</button>
       </div>
       <div class="play-controls">
@@ -43,11 +48,9 @@
         <div class="action-buttons">
           <button data-action="5" class="action secondary" aria-label="B: secondary action and back">B</button>
           <button data-action="4" class="action primary" aria-label="A: primary action and confirm">A</button>
-          <span class="action-caption" aria-hidden="true">ADVENTURE AWAITS</span>
         </div>
       </div>
     </section>
-    <footer><span id="status" role="status">Rust + WebAssembly</span><a href="./credits.html">Credits</a></footer>
   </main>
   <aside id="notice" role="alert" hidden><span id="notice-text"></span><button id="dismiss" aria-label="Dismiss notice">×</button></aside>
   <script type="module" src="./app.js"></script>
