@@ -30,7 +30,7 @@ If you are starting from the source code, follow the [build guide](docs/DEVELOPM
 
 ### Play in a browser
 
-The [web version](https://carlosmoran97.github.io/zelda-mobile-rust/) runs the same
+The [web version](https://carlosmoran97.github.io/zelda-mobile/) runs the same
 Rust game through WebAssembly. It is designed for portrait mobile browsers, with
 a D-pad, A/B buttons, Menu, and the game's current command buttons beneath the
 screen. Hold a direction and an action together to move and use equipment.

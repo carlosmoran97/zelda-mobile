@@ -9,6 +9,7 @@ use crate::{
 use std::{cell::RefCell, collections::BTreeMap, rc::Rc};
 use wasm_bindgen::prelude::*;
 
+// Keep storage keys stable across repository/URL renames to retain existing saves.
 const PREFIX: &str = "zelda-mobile-rust:v1:";
 
 struct BrowserRecords {
