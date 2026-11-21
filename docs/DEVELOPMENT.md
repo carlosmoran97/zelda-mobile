@@ -69,11 +69,12 @@ There are no generated Rust files and no source translation command.
 
 ## Recovering reference material
 
-The original JAR and recovered Java are retained for inspection and optional
-behavior comparisons. With Java/Javac installed, run:
+The original JAR, emulator, recovered Java, comparison harnesses and decompiler
+tooling live in [`java/`](../java/README.md) for inspection and optional behavior
+comparisons. With Java/Javac installed, run:
 
 ```sh
-python3 scripts/recover.py
+python3 java/recover.py
 ```
 
 This recovers the Java decompilation, original assets and font atlases. It never
@@ -93,7 +94,8 @@ The sprite oracle also compares all 256 IDs in four catalogs under two visual
 variants: 2,048 cases covering sprite pixels, shared cache slots, reuse and aging.
 Sprite checksums compare opaque RGB and all alpha values; translucent RGB is
 omitted because Java's image conversion rounds those colors.
-Reports and frames are written under `target/`, using isolated saves.
+Reports and frames are written under `target/`, using isolated saves. Java
+classes and emulator working files are written under `java/target/`.
 
 See the [validation report](../reference/VALIDATION.md) for measured results and
 coverage limits. The complete campaign has not been manually played from
@@ -102,9 +104,9 @@ synthesizer.
 
 ## Original J2ME reference
 
-The unmodified game JAR and FreeJ2ME-Plus 1.53 remain available as development
-references. Java is required to run the original J2ME version. Its phone controls
-are arrows, Return for fire, Q/W for softkeys, the number keys, E/R for `*` / `#`,
+The unmodified game JAR and FreeJ2ME-Plus 1.53 remain available under `java/` as
+development references. Java is required to run the original J2ME version. Its
+phone controls are arrows, Return for fire, Q/W for softkeys, the number keys, E/R for `*` / `#`,
 and +/- for scaling. Emulator saves remain separate from native saves and are
 not automatically imported.
 

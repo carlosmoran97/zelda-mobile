@@ -1,6 +1,6 @@
 # Recovery and native architecture
 
-Input: `TheLegendOfZeldaMobile-beta4.jar`, SHA-256
+Input: `java/TheLegendOfZeldaMobile-beta4.jar`, SHA-256
 `5a9183745571117f850a51414ededee4afe3b99e3dc014a7ece0cae584bc199a`.
 The manifest calls it version 4.12, MIDP 2.0 / CLDC 1.1. The archive contains
 17 classes and 757 original resource files.
@@ -14,9 +14,10 @@ Neither the original JAR nor a Java installation is needed to build or play.
 
 The first restoration mechanically translated 103 methods (73,228 JVM
 instructions) into 8,391 control-flow blocks. That representation has been
-retired. `reference/translation.json` records its historical coverage; it is not
-an input to the native game. CFR's 19,146 lines under `reference/java/` remain an
-inspection aid. The decompiler could not completely reconstruct some large
+retired. `java/reference/translation.json` records its historical coverage; it is
+not an input to the native game. CFR's 19,146 lines under
+`java/reference/decompiled/` remain an inspection aid. The decompiler could not
+completely reconstruct some large
 methods, so the native behavior is checked against the unmodified JAR rather
 than relying on that Java as compilable source.
 

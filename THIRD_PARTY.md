@@ -5,10 +5,11 @@ Its original artwork, maps, music, credits, and game logic are retained. The nat
 application is a local restoration of that supplied game; this project does not
 assign a new license to the original game or its resources.
 
-- [CFR 0.152](https://www.benf.org/other/cfr/) is a development-only decompiler.
+- [CFR 0.152](https://www.benf.org/other/cfr/) is a development-only decompiler
+  stored under `java/tools/`.
 - [FreeJ2ME-Plus 1.53](https://github.com/TASEmulators/freej2me-plus/releases/tag/1.53)
   is the unmodified GPL-3.0 development reference. It is **not bundled in the
-  native application**. Its emulator files remain available separately.
+  native application**. Its emulator files remain available in `java/emulator/`.
 - [SDL3](https://github.com/libsdl-org/SDL) supplies native macOS rendering, input,
   controller support and audio output. It is linked statically under its zlib license.
 - [RustySynth](https://github.com/sinshu/rustysynth) supplies MIDI synthesis (MIT).

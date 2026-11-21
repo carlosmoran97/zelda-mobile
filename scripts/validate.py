@@ -9,6 +9,7 @@ import subprocess
 import tempfile
 
 root=Path(__file__).resolve().parent.parent
+java=root/'java'
 parser=argparse.ArgumentParser()
 parser.add_argument('--skip-build',action='store_true')
 args=parser.parse_args()
@@ -28,14 +29,14 @@ with tempfile.TemporaryDirectory(prefix='zelda-validation-',dir=root/'target') a
 run([root/'target/release/examples/behavior_check'])
 run([root/'target/release/examples/catalog_check'])
 if shutil.which('javac') and shutil.which('java'):
-    work=root/'target/reference-run'
-    work.mkdir(exist_ok=True)
-    emulator=root/'emulator/freej2me_plus.jar'
-    run(['javac','-cp',emulator,'-d',work,root/'reference/ReferenceHarness.java',root/'reference/BehaviorOracle.java',root/'reference/CatalogOracle.java'])
+    work=java/'target/reference-run'
+    work.mkdir(parents=True,exist_ok=True)
+    emulator=java/'emulator/freej2me_plus.jar'
+    run(['javac','-cp',emulator,'-d',work,java/'reference/ReferenceHarness.java',java/'reference/BehaviorOracle.java',java/'reference/CatalogOracle.java'])
     cp=str(work)+os.pathsep+str(emulator)
     for harness in ['BehaviorOracle','ReferenceHarness','CatalogOracle']:
         with (root/'target'/f'{harness}.log').open('w') as log:
-            run(['java','-Djava.awt.headless=true','-Dfile.encoding=ISO_8859_1','-cp',cp,harness,root/'TheLegendOfZeldaMobile-beta4.jar',root/'target'],cwd=work,stdout=log,stderr=subprocess.STDOUT)
+            run(['java','-Djava.awt.headless=true','-Dfile.encoding=ISO_8859_1','-cp',cp,harness,java/'TheLegendOfZeldaMobile-beta4.jar',root/'target'],cwd=work,stdout=log,stderr=subprocess.STDOUT)
     native=json.loads((root/'target/native-behavior.json').read_text())
     original=json.loads((root/'target/reference-behavior.json').read_text())
     if native!=original:raise SystemExit('FAIL: native behavior differs from the original JAR; inspect target/*-behavior.json')
