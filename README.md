@@ -1,6 +1,6 @@
 # Zelda Mobile
 
-A Zelda fan game from the days of Java phones, brought back to the Mac.
+A Zelda fan game from the days of Java phones, brought back to the Mac and browser.
 
 Play as Link, explore forests, caves and dungeons, discover hidden entrances,
 and collect familiar equipment such as the sword, bow, boomerang and hookshot.
@@ -27,6 +27,24 @@ The game pauses when you switch to another app.
 If you are starting from the source code, follow the [build guide](docs/DEVELOPMENT.md).
 
 ## Controls
+
+### Play in a browser
+
+The [web version](https://carlosmoran97.github.io/zelda-mobile-rust/) runs the same
+Rust game through WebAssembly. It is designed for portrait mobile browsers, with
+a D-pad, A/B buttons, Menu, and the game's current command buttons beneath the
+screen. Hold a direction and an action together to move and use equipment.
+Keyboard controls below also work in the browser.
+
+Tap **Play** to begin and enable audio. The instrument bank downloads separately,
+so you can play while sound loads. **Sound** toggles audio. Switching apps pauses
+the game; tap **Resume** when you return.
+
+The three web save slots and settings stay in this browser on this device.
+Explicit saves and backgrounding checkpoint your progress. Clearing site data
+removes these saves; browser and native saves are separate.
+
+### Native controls
 
 | Action | Keyboard | Xbox controller |
 |---|---|---|

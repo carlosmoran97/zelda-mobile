@@ -15,7 +15,16 @@ pub struct Game {
 }
 impl Game {
     pub fn new(assets: PathBuf, saves: PathBuf, verbose: bool) -> Result<Self, String> {
-        let mut r = Runtime::new(assets, saves)?;
+        Self::from_runtime(Runtime::new(assets, saves)?, verbose)
+    }
+    pub fn with_services(
+        assets: Rc<dyn crate::assets::Assets>,
+        records: Rc<dyn crate::storage::RecordStore>,
+        verbose: bool,
+    ) -> Result<Self, String> {
+        Self::from_runtime(Runtime::with_services(assets, records)?, verbose)
+    }
+    fn from_runtime(mut r: Runtime, verbose: bool) -> Result<Self, String> {
         r.verbose = verbose;
         let zelda = r.alloc("Zelda", Native::Empty);
         r.call(zelda, "<init>", "()V", &[]).map_err(|e| {
@@ -251,16 +260,21 @@ impl Game {
     }
     pub fn shutdown(&mut self) -> Result<(), String> {
         if !self.runtime.quit {
-            let player = self.runtime.field(self.canvas, "e", "Lh;").r();
-            if player != 0 {
-                self.runtime
-                    .call(self.canvas, "d", "()V", &[])
-                    .map_err(|e| self.error(e))?;
-            }
+            self.checkpoint()?;
+        }
+        Ok(())
+    }
+    /// Save without destroying the game, including before mobile suspension.
+    pub fn checkpoint(&mut self) -> Result<(), String> {
+        let player = self.runtime.field(self.canvas, "e", "Lh;").r();
+        if player != 0 {
             self.runtime
-                .call(self.canvas, "a", "()V", &[])
+                .call(self.canvas, "d", "()V", &[])
                 .map_err(|e| self.error(e))?;
         }
+        self.runtime
+            .call(self.canvas, "a", "()V", &[])
+            .map_err(|e| self.error(e))?;
         Ok(())
     }
     fn poll_sound(&mut self) -> Result<(), String> {

@@ -112,6 +112,8 @@ pub struct Runtime {
     image_cache: HashMap<String, Surface>,
     pub assets: PathBuf,
     pub saves: PathBuf,
+    pub resources: Rc<dyn crate::assets::Assets>,
+    pub records: Rc<dyn crate::storage::RecordStore>,
     pub fonts: Fonts,
     pub default_font: u32,
     pub timers: Vec<Timer>,
@@ -129,15 +131,29 @@ pub struct Runtime {
 }
 impl Runtime {
     pub fn new(assets: PathBuf, saves: PathBuf) -> Result<Self, String> {
-        let fonts = Fonts::new(&assets)?;
+        let mut runtime = Self::with_services(
+            Rc::new(crate::assets::FileAssets(assets.clone())),
+            Rc::new(crate::storage::FileRecords(saves.clone())),
+        )?;
+        runtime.assets = assets;
+        runtime.saves = saves;
+        Ok(runtime)
+    }
+    pub fn with_services(
+        resources: Rc<dyn crate::assets::Assets>,
+        records: Rc<dyn crate::storage::RecordStore>,
+    ) -> Result<Self, String> {
+        let fonts = Fonts::from_assets(resources.as_ref())?;
         let mut r = Self {
             heap: vec![None],
             free: Vec::new(),
             statics: HashMap::new(),
             interned: HashMap::new(),
             image_cache: HashMap::new(),
-            assets,
-            saves,
+            assets: PathBuf::new(),
+            saves: PathBuf::new(),
+            resources,
+            records,
             fonts,
             default_font: 0,
             timers: Vec::new(),
@@ -498,7 +514,10 @@ impl Runtime {
         let image = if let Some(s) = self.image_cache.get(name) {
             s.clone()
         } else {
-            let b = Bitmap::load(&self.assets.join(name))
+            let b = self
+                .resources
+                .read(name)
+                .and_then(|bytes| Bitmap::decode(&bytes))
                 .map_err(|e| self.exception("java/io/IOException", &e))?;
             let s = Rc::new(RefCell::new(b));
             self.image_cache.insert(name.to_owned(), s.clone());
@@ -567,7 +586,7 @@ impl Runtime {
             }
             ("java/lang/Class", "getResourceAsStream", _) => {
                 let name = self.string(a[1].r()).trim_start_matches('/').to_owned();
-                let Ok(bytes) = std::fs::read(self.assets.join(&name)) else {
+                let Ok(bytes) = self.resources.read(&name).map(|b| b.into_owned()) else {
                     return Ok(V::R(0));
                 };
                 let stream = Stream {
@@ -1044,13 +1063,10 @@ impl Runtime {
     }
     fn record(&mut self, name: &str, a: &[V]) -> JResult {
         if name == "listRecordStores" {
-            let names: Vec<String> = std::fs::read_dir(&self.saves)
-                .into_iter()
-                .flatten()
-                .filter_map(Result::ok)
-                .filter_map(|e| e.path().file_name()?.to_str().map(str::to_owned))
-                .filter_map(|s| s.strip_suffix(".rms").map(str::to_owned))
-                .collect();
+            let names = self
+                .records
+                .list()
+                .map_err(|e| self.exception("javax/microedition/rms/RecordStoreException", &e))?;
             if names.is_empty() {
                 return Ok(V::R(0));
             }
@@ -1070,9 +1086,8 @@ impl Runtime {
                     "invalid store name",
                 ));
             }
-            let path = self.saves.join(format!("{key}.rms"));
             if name == "deleteRecordStore" {
-                std::fs::remove_file(&path).map_err(|e| {
+                self.records.delete(&key).map_err(|e| {
                     self.exception(
                         "javax/microedition/rms/RecordStoreException",
                         &e.to_string(),
@@ -1080,11 +1095,11 @@ impl Runtime {
                 })?;
                 return Ok(V::I(0));
             }
-            let data = match std::fs::read(&path) {
-                Ok(bytes) => Some(crate::storage::decode_record(&bytes).map_err(|e| {
+            let data = match self.records.read(&key) {
+                Ok(Some(bytes)) => Some(crate::storage::decode_record(&bytes).map_err(|e| {
                     self.exception("javax/microedition/rms/RecordStoreException", &e)
                 })?),
-                Err(e) if e.kind() == std::io::ErrorKind::NotFound => None,
+                Ok(None) => None,
                 Err(e) => {
                     return Err(self.exception(
                         "javax/microedition/rms/RecordStoreException",
@@ -1136,16 +1151,14 @@ impl Runtime {
                 panic!("record state")
             };
             let key = key.clone();
-            crate::storage::atomic_write(
-                &self.saves.join(format!("{key}.rms")),
-                &crate::storage::encode_record(payload),
-            )
-            .map_err(|e| {
-                self.exception(
-                    "javax/microedition/rms/RecordStoreException",
-                    &e.to_string(),
-                )
-            })?;
+            self.records
+                .write(&key, &crate::storage::encode_record(payload))
+                .map_err(|e| {
+                    self.exception(
+                        "javax/microedition/rms/RecordStoreException",
+                        &e.to_string(),
+                    )
+                })?;
             self.obj_mut(o).native = Native::Record {
                 name: key,
                 data: Some(payload.to_vec()),

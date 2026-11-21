@@ -23,6 +23,40 @@ SDL3 is built from source and linked statically. The packaged application is
 locally signed and uses macOS system frameworks. The native Rust sources and font
 atlases are included, so a normal build does not require Java or the original JAR.
 
+## Browser build
+
+Install Rust, Python 3.11+, and (for the checks) Node.js 22+. Build with:
+
+```sh
+python3 scripts/build_web.py --setup
+python3 -m http.server 8080 --directory dist/web
+```
+
+Open `http://localhost:8080`. The setup option installs the
+`wasm32-unknown-unknown` target and a matching, pinned `wasm-bindgen` CLI into
+`target/web-tools`. Later builds can omit `--setup`; add `--offline` once Cargo
+dependencies have been fetched. No SDL, CMake, Java, or macOS fonts are needed
+for the web build. Keep the HTTP server running; opening the HTML file directly
+does not support Wasm loading.
+
+The static output is `dist/web/`. Resource URLs are relative, including worker
+and audio assets, so hosting beneath a repository path works. The large soundfont
+is fetched only when sound is enabled. A dedicated worker runs the Rust synth at
+the browser audio sample rate and transfers PCM blocks to an AudioWorklet.
+No shared-memory or cross-origin isolation headers are required.
+
+Run `node --test scripts/web-tests.mjs` after building for deterministic tests of
+the actual Wasm game, persistent records, input arbitration, touch helpers, and
+audio queue. `src/assets.rs` and `storage::RecordStore` form the host-service
+boundary; native construction continues to use filesystem-backed services.
+
+The **Browser game** Actions workflow checks pull requests and publishes `main`
+to GitHub Pages. Pages must use **GitHub Actions** as its publishing source.
+To inspect deployment, use `gh run list --workflow pages.yml` and
+`gh run watch <run-id> --exit-status`. Browser smoke checks should cover mobile
+Safari and Chrome, multi-touch movement/actions, save/reload, audio, and app
+switching on the deployed HTTPS address.
+
 ## Editing the game
 
 Maintain the Rust implementation directly in `src/game/`. The module guide in

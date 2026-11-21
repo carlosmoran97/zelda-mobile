@@ -1,12 +1,11 @@
 //! Native MIDI synthesis and the original packed WAV effect bank.
 use rustysynth::{MidiFile, MidiFileSequencer, SoundFont, Synthesizer, SynthesizerSettings};
-use std::{
-    collections::HashMap,
-    path::Path,
-    sync::{Arc, mpsc},
-};
+#[cfg(not(target_arch = "wasm32"))]
+use std::sync::mpsc;
+use std::{collections::HashMap, io::Cursor, path::Path, sync::Arc};
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+#[serde(tag = "type", content = "data", rename_all = "snake_case")]
 pub enum AudioCommand {
     Play {
         id: u32,
@@ -32,30 +31,33 @@ pub struct AudioCore {
     effect_pos: f64,
     effect_on: bool,
     effect_volume: f32,
+    rate: i32,
 }
 impl AudioCore {
     pub const RATE: i32 = 44100;
     pub fn new(assets: &Path) -> Result<Self, String> {
-        let mut font = std::fs::File::open(assets.join("audio/GeneralUser-GS.sf2"))
-            .map_err(|e| format!("SoundFont: {e}"))?;
-        let font = Arc::new(SoundFont::new(&mut font).map_err(|e| e.to_string())?);
-        let synth = Synthesizer::new(&font, &SynthesizerSettings::new(Self::RATE))
-            .map_err(|e| e.to_string())?;
+        let source = crate::assets::FileAssets(assets.to_owned());
+        let font = crate::assets::Assets::read(&source, "audio/GeneralUser-GS.sf2")?;
+        Self::from_assets(&source, &font, Self::RATE)
+    }
+    pub fn from_assets(
+        assets: &dyn crate::assets::Assets,
+        font: &[u8],
+        rate: i32,
+    ) -> Result<Self, String> {
+        let font = Arc::new(SoundFont::new(&mut Cursor::new(font)).map_err(|e| e.to_string())?);
+        let synth =
+            Synthesizer::new(&font, &SynthesizerSettings::new(rate)).map_err(|e| e.to_string())?;
         let mut midis = HashMap::new();
-        for e in std::fs::read_dir(assets.join("Sound/midi")).map_err(|e| e.to_string())? {
-            let path = e.map_err(|e| e.to_string())?.path();
-            if path.extension().is_some_and(|x| x == "mid") {
-                let midi =
-                    MidiFile::new(&mut std::fs::File::open(&path).map_err(|e| e.to_string())?)
-                        .map_err(|e| format!("{}: {e}", path.display()))?;
-                midis.insert(
-                    format!("Sound/midi/{}", path.file_name().unwrap().to_string_lossy()),
-                    Arc::new(midi),
-                );
+        for name in assets.list("Sound/midi")? {
+            if name.ends_with(".mid") {
+                let midi = MidiFile::new(&mut Cursor::new(assets.read(&name)?))
+                    .map_err(|e| format!("{name}: {e}"))?;
+                midis.insert(name, Arc::new(midi));
             }
         }
-        let mut wav =
-            hound::WavReader::open(assets.join("Sound/Effects.wav")).map_err(|e| e.to_string())?;
+        let mut wav = hound::WavReader::new(Cursor::new(assets.read("Sound/Effects.wav")?))
+            .map_err(|e| e.to_string())?;
         let spec = wav.spec();
         let raw: Vec<f32> = if spec.sample_format == hound::SampleFormat::Float {
             wav.samples::<f32>()
@@ -85,6 +87,7 @@ impl AudioCore {
             effect_pos: 0.0,
             effect_on: false,
             effect_volume: 0.5,
+            rate,
         })
     }
     pub fn command(&mut self, c: AudioCommand) {
@@ -152,7 +155,7 @@ impl AudioCore {
                     let t = (self.effect_pos - pos as f64) as f32;
                     let a = self.effects[pos];
                     let b = *self.effects.get(pos + 1).unwrap_or(&a);
-                    self.effect_pos += self.effects_rate as f64 / Self::RATE as f64;
+                    self.effect_pos += self.effects_rate as f64 / self.rate as f64;
                     (a + (b - a) * t) * self.effect_volume
                 }
             } else {
@@ -179,10 +182,12 @@ impl AudioCore {
     }
 }
 
+#[cfg(not(target_arch = "wasm32"))]
 pub struct Mixer {
     pub core: AudioCore,
     pub commands: mpsc::Receiver<AudioCommand>,
 }
+#[cfg(not(target_arch = "wasm32"))]
 impl sdl3::audio::AudioCallback<f32> for Mixer {
     fn callback(&mut self, stream: &mut sdl3::audio::AudioStream, additional_amount: i32) {
         while let Ok(command) = self.commands.try_recv() {
