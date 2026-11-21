@@ -27,6 +27,7 @@ export class AudioOutput {
     if (!this.paused) await this.context.resume();
     await this.context.audioWorklet.addModule(new URL('./audio-worklet.js', import.meta.url));
     this.node = new AudioWorkletNode(this.context, 'zelda-audio', { numberOfInputs: 0, numberOfOutputs: 1, outputChannelCount: [2] });
+    this.node.onprocessorerror = () => { void this.fail(new Error('Audio playback stopped unexpectedly. Tap Sound to retry.')); };
     this.node.connect(this.context.destination);
     this.worker = new Worker(new URL('./audio-worker.js', import.meta.url), { type: 'module' });
     const channel = new MessageChannel();
@@ -39,7 +40,11 @@ export class AudioOutput {
           if (!this.ready) reject(new Error(data.message)); else this.fail(new Error(data.message));
         }
       };
-      this.worker.onerror = event => { clearTimeout(timeout); reject(new Error(event.message || 'The audio worker failed.')); };
+      this.worker.onerror = event => {
+        clearTimeout(timeout);
+        const error = new Error(event.message || 'The audio worker failed.');
+        if (this.ready) void this.fail(error); else reject(error);
+      };
       this.worker.postMessage({ type: 'init', sampleRate: this.context.sampleRate, port: channel.port1 }, [channel.port1]);
     });
     this.ready = true;
