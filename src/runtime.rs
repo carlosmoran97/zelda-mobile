@@ -509,31 +509,20 @@ impl Runtime {
             (15, false)
         }
     }
-    fn cached_image(&mut self, name: &str) -> Result<Surface, String> {
-        let name = name.trim_start_matches('/');
-        if let Some(image) = self.image_cache.get(name) {
-            Ok(image.clone())
-        } else {
-            let bitmap = Bitmap::decode(&self.resources.read(name)?)
-                .map_err(|error| format!("{name}: {error}"))?;
-            let image = Rc::new(RefCell::new(bitmap));
-            self.image_cache.insert(name.to_owned(), image.clone());
-            Ok(image)
-        }
-    }
-    pub fn preload_images(&mut self) -> Result<usize, String> {
-        let images = self.resources.list("Images")?;
-        let mut count = 0;
-        for name in images.iter().filter(|name| name.ends_with(".png")) {
-            self.cached_image(name)?;
-            count += 1;
-        }
-        Ok(count)
-    }
     pub fn load_image(&mut self, name: &str) -> Result<u32, u32> {
-        let image = self
-            .cached_image(name)
-            .map_err(|error| self.exception("java/io/IOException", &error))?;
+        let name = name.trim_start_matches('/');
+        let image = if let Some(s) = self.image_cache.get(name) {
+            s.clone()
+        } else {
+            let b = self
+                .resources
+                .read(name)
+                .and_then(|bytes| Bitmap::decode(&bytes))
+                .map_err(|e| self.exception("java/io/IOException", &e))?;
+            let s = Rc::new(RefCell::new(b));
+            self.image_cache.insert(name.to_owned(), s.clone());
+            s
+        };
         Ok(self.alloc("javax/microedition/lcdui/Image", Native::Image(image)))
     }
     pub fn collect(&mut self) {
@@ -1272,28 +1261,6 @@ fn default_value(desc: &str) -> V {
 #[cfg(test)]
 mod tests {
     use super::*;
-    #[test]
-    fn preloaded_images_are_reused_without_advancing_the_game() {
-        let mut r = Runtime::new(PathBuf::from("assets"), std::env::temp_dir()).unwrap();
-        let heap_size = r.heap.len();
-        let count = r.preload_images().unwrap();
-        assert!(count > 200);
-        assert_eq!(r.image_cache.len(), count);
-        assert_eq!(
-            r.heap.len(),
-            heap_size,
-            "preloading allocates no game objects"
-        );
-        assert_eq!(r.now, 0);
-        for name in r.image_cache.keys().cloned().collect::<Vec<_>>() {
-            let before = r.image_cache[&name].clone();
-            let image = r.load_image(&format!("/{name}")).unwrap();
-            assert!(Rc::ptr_eq(&before, &r.surface(image)), "{name}");
-        }
-        r.collect();
-        assert_eq!(r.preload_images().unwrap(), count);
-        assert_eq!(r.image_cache.len(), count, "preloading is idempotent");
-    }
     #[test]
     fn java_random_matches_jdk() {
         let mut r = Runtime::new(PathBuf::from("assets"), std::env::temp_dir()).unwrap();

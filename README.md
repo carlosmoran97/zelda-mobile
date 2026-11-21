@@ -36,12 +36,9 @@ a D-pad, A/B buttons, and the game's current command buttons beneath the
 screen. Hold a direction and an action together to move and use equipment.
 Keyboard controls below also work in the browser.
 
-The page loads the game, prepares every sprite sheet, and downloads the audio
-instrument bank before enabling **Play**. A loading indicator shows its progress;
-if loading fails, tap **Retry** to reload. The first load includes about 31 MB of
-audio, so it can take longer on a slow connection. Tap **Play** to begin with sound.
-The speaker icon toggles audio. Switching apps pauses the game; tap **Resume**
-when you return.
+Tap **Play** to begin and enable audio. The instrument bank downloads separately,
+so you can play while sound loads. The speaker icon toggles audio. Switching apps
+pauses the game; tap **Resume** when you return.
 
 The three web save slots and settings stay in this browser on this device.
 Explicit saves and backgrounding checkpoint your progress. Clearing site data

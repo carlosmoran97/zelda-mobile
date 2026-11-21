@@ -6,7 +6,6 @@ import { createHash } from 'node:crypto';
 import { initSync, BrowserGame, BrowserAudio } from '../dist/web/pkg/zelda_mobile.js';
 import { keyAction, padAction, bindControls } from '../web/input.js';
 import { AudioOutput } from '../web/audio.js';
-import { prepareAssets } from '../web/startup.js';
 
 const prefix = 'zelda-mobile-rust:v1:';
 class MemoryStorage {
@@ -48,9 +47,6 @@ function enter(game, slot = 0) {
 test('actual Wasm runs the opening and inventory with embedded resources', () => {
   const game = fresh();
   try {
-    const title = game.pixels();
-    assert.ok(game.preload_assets() > 200);
-    assert.deepEqual(game.pixels(), title, 'sprite preparation does not change the title');
     assert.equal(game.state(), 0);
     assert.equal(game.pixels().length, 240 * 320 * 4);
     enter(game);
@@ -220,17 +216,9 @@ test('audio loading retains current music and discards stale effects', () => {
   assert.equal(output.music, null);
 });
 
-function deferred() {
-  let resolve, reject;
-  const promise = new Promise((yes, no) => { resolve = yes; reject = no; });
-  return { promise, resolve, reject };
-}
-
-function mockBrowserAudio(t, session, { worklet, workerReady, resume } = {}) {
+function mockBrowserAudio(t, session) {
   const events = [];
   const contexts = [];
-  const workers = [];
-  const nodes = [];
   function install(name, value) {
     const original = Object.getOwnPropertyDescriptor(globalThis, name);
     Object.defineProperty(globalThis, name, { configurable: true, value });
@@ -245,7 +233,7 @@ function mockBrowserAudio(t, session, { worklet, workerReady, resume } = {}) {
       this.state = 'suspended';
       this.sampleRate = 48000;
       this.destination = {};
-      this.audioWorklet = { addModule: async () => { events.push('load-worklet'); await worklet?.promise; } };
+      this.audioWorklet = { addModule: async () => { events.push('load-worklet'); } };
       contexts.push(this);
     }
     createBuffer(channels, frames, rate) {
@@ -259,32 +247,25 @@ function mockBrowserAudio(t, session, { worklet, workerReady, resume } = {}) {
         disconnect() { events.push('disconnect-source'); },
       };
     }
-    async resume() { events.push('resume'); await resume?.promise; this.state = 'running'; }
+    async resume() { events.push('resume'); this.state = 'running'; }
     async suspend() { events.push('suspend'); this.state = 'suspended'; }
     async close() { this.state = 'closed'; }
   });
   install('AudioWorkletNode', class {
-    constructor() { nodes.push(this); }
-    port = { postMessage() {}, close() {} };
+    port = { postMessage() {} };
     connect() {}
-    disconnect() { events.push('disconnect-worklet'); }
   });
   install('Worker', class {
-    constructor() { workers.push(this); }
     postMessage(message) {
-      if (message.type === 'init') {
-        events.push('init-worker');
-        if (!workerReady) queueMicrotask(() => this.onmessage?.({ data: { type: 'ready' } }));
-      }
+      if (message.type === 'init') queueMicrotask(() => this.onmessage({ data: { type: 'ready' } }));
     }
-    terminate() { this.terminated = true; }
+    terminate() {}
   });
-  install('MessageChannel', class { port1 = { close() {} }; port2 = { close() {} }; });
-  t.after(async () => { for (const context of contexts) await context.close(); });
-  return { events, contexts, workers, nodes };
+  install('MessageChannel', class { port1 = {}; port2 = {}; });
+  return { events, contexts };
 }
 
-test('Safari playback is unlocked synchronously within the enable-sound gesture', async t => {
+test('Safari playback is selected and a source starts before asynchronous audio loading', async t => {
   const { events, contexts } = mockBrowserAudio(t, {
     set type(value) { events.push(`session:${value}`); },
   });
@@ -292,10 +273,10 @@ test('Safari playback is unlocked synchronously within the enable-sound gesture'
   const output = new AudioOutput(() => {}, message => warnings.push(message));
   await output.setPaused(false);
   const loading = output.setEnabled(true);
-  assert.deepEqual(events, ['load-worklet', 'session:playback', 'connect-source', 'start-source', 'disconnect-source', 'resume'],
-    'playback and unlocking happen synchronously inside the gesture');
+  assert.deepEqual(events, ['session:playback', 'connect-source', 'start-source', 'disconnect-source', 'resume'],
+    'playback and unlocking happen synchronously inside the Play gesture');
   await loading;
-  assert.ok(events.indexOf('resume') < events.indexOf('init-worker'));
+  assert.ok(events.indexOf('resume') < events.indexOf('load-worklet'));
   assert.equal(contexts[0].state, 'running');
   assert.equal(output.ready, true);
   assert.deepEqual(warnings, []);
@@ -309,9 +290,8 @@ test('audio recovers from Safari interruption without overriding mute or pause',
   const context = contexts[0];
   context.state = 'interrupted';
   const recovery = output.resume();
-  assert.ok(events.includes('resume'), 'resume is requested during the recovery gesture');
+  assert.equal(context.state, 'running', 'resume is requested during the recovery gesture');
   await recovery;
-  assert.equal(context.state, 'running');
   assert.equal(contexts.length, 1, 'the synth and context survive interruption');
   await output.setPaused(true);
   events.length = 0;
@@ -363,214 +343,6 @@ test('unsupported browser audio reports failure without rejecting gameplay', asy
   assert.equal(output.enabled, false);
   assert.equal(output.loading, null);
   assert.match(warnings[0], /keep playing/);
-});
-
-test('preload shares preparation, stays silent, and Play unlocks the prepared context', async t => {
-  const workerReady = deferred();
-  const session = { type: 'auto' };
-  const { contexts, workers, events } = mockBrowserAudio(t, session, { workerReady });
-  const output = new AudioOutput(() => {}, () => {});
-  const loading = output.preload();
-  assert.equal(output.preload(), loading, 'concurrent callers share one operation');
-  await new Promise(setImmediate);
-  assert.equal(output.ready, false, 'worker initialization is required');
-  assert.equal(contexts.length, 1);
-  assert.equal(contexts[0].state, 'suspended');
-  assert.equal(session.type, 'auto');
-  assert.ok(!events.includes('resume') && !events.includes('start-source'));
-  workers[0].onmessage({ data: { type: 'ready' } });
-  await loading;
-  assert.equal(output.ready, true);
-  assert.equal(output.enabled, false);
-  const started = output.start();
-  assert.equal(session.type, 'playback');
-  assert.ok(events.includes('start-source'), 'unlock begins before start() yields');
-  await started;
-  assert.equal(contexts[0].state, 'running');
-  assert.equal(contexts.length, 1, 'Play uses the preloaded context');
-  await output.dispose();
-});
-
-test('Play waits for audio activation and propagates activation failures', async t => {
-  const activation = deferred();
-  mockBrowserAudio(t, { type: 'auto' }, { resume: activation });
-  const output = new AudioOutput(() => {}, () => {});
-  await output.preload();
-  let started = false;
-  const start = output.start().then(() => { started = true; });
-  const rejected = assert.rejects(start, /Audio activation denied/);
-  await new Promise(setImmediate);
-  assert.equal(started, false);
-  activation.reject(new Error('Audio activation denied'));
-  await rejected;
-  assert.equal(started, false);
-  await output.dispose();
-});
-
-test('worklet load errors reject preload and release resources without a gameplay warning', async t => {
-  const worklet = deferred();
-  const { contexts, workers } = mockBrowserAudio(t, undefined, { worklet });
-  const warnings = [];
-  const output = new AudioOutput(() => {}, message => warnings.push(message));
-  const rejected = assert.rejects(output.preload(), /Worklet download failed/);
-  worklet.reject(new Error('Worklet download failed'));
-  await rejected;
-  assert.equal(output.ready, false);
-  assert.equal(output.loading, null);
-  assert.equal(contexts[0].state, 'closed');
-  assert.equal(workers.length, 0);
-  assert.deepEqual(warnings, []);
-});
-
-test('an activation error during a sound retry also cancels pending preparation', async t => {
-  const worklet = deferred(), activation = deferred();
-  const { contexts, workers } = mockBrowserAudio(t, undefined, { worklet, resume: activation });
-  const warnings = [];
-  const output = new AudioOutput(() => {}, message => warnings.push(message));
-  await output.setPaused(false);
-  const enabling = output.setEnabled(true);
-  activation.reject(new Error('Audio activation denied'));
-  await enabling;
-  worklet.resolve();
-  await new Promise(setImmediate);
-  assert.equal(output.loading, null);
-  assert.equal(output.enabled, false);
-  assert.equal(contexts[0].state, 'closed');
-  assert.equal(workers.length, 0);
-  assert.match(warnings[0], /Audio activation denied/);
-});
-
-test('sound can recover from a playback failure while the game keeps running', async t => {
-  const { contexts, workers } = mockBrowserAudio(t, undefined);
-  const warnings = [];
-  const output = new AudioOutput(() => {}, message => warnings.push(message));
-  await output.preload();
-  await output.start();
-  workers[0].onmessage({ data: { type: 'error', message: 'Playback failed' } });
-  await new Promise(setImmediate);
-  assert.equal(output.ready, false);
-  assert.equal(output.enabled, false);
-  assert.equal(output.paused, false, 'audio cleanup preserves the game pause state');
-  await output.setEnabled(true);
-  assert.equal(output.ready, true);
-  assert.equal(contexts.length, 2);
-  assert.equal(contexts[1].state, 'running');
-  assert.equal(warnings.length, 1);
-  await output.dispose();
-});
-
-test('worker download, decoding, script, and processor errors reject preparation', async t => {
-  for (const failure of ['Sound download failed (503)', 'Invalid soundfont', 'Worker script failed', 'processor']) {
-    await t.test(failure, async t => {
-      const { contexts, workers, nodes } = mockBrowserAudio(t, undefined, { workerReady: deferred() });
-      const output = new AudioOutput(() => {}, () => {});
-      const loading = output.preload();
-      const rejected = assert.rejects(loading, failure === 'processor' ? /playback stopped/ : new RegExp(failure.replace(/[()]/g, '\\$&')));
-      await new Promise(setImmediate);
-      if (failure === 'processor') nodes[0].onprocessorerror();
-      else if (failure === 'Worker script failed') workers[0].onerror({ message: failure });
-      else workers[0].onmessage({ data: { type: 'error', message: failure } });
-      await rejected;
-      assert.equal(output.ready, false);
-      assert.equal(workers[0].terminated, true);
-      assert.equal(contexts[0].state, 'closed');
-    });
-  }
-});
-
-test('audio timeout includes a stalled worklet and late completion cannot revive it', async t => {
-  t.mock.timers.enable({ apis: ['setTimeout'] });
-  const worklet = deferred();
-  const { contexts, workers } = mockBrowserAudio(t, undefined, { worklet });
-  const output = new AudioOutput(() => {}, () => {});
-  const rejected = assert.rejects(output.preload(), /Sound loading timed out/);
-  t.mock.timers.tick(90000);
-  await rejected;
-  worklet.resolve();
-  await new Promise(setImmediate);
-  assert.equal(output.ready, false);
-  assert.equal(contexts[0].state, 'closed');
-  assert.equal(workers.length, 0, 'late worklet completion does not create a worker');
-  await output.preload();
-  assert.equal(output.ready, true, 'a new preparation can succeed after failure');
-  assert.equal(contexts.length, 2);
-  await output.dispose();
-});
-
-test('unsupported audio rejects mandatory preload', async () => {
-  const output = new AudioOutput(() => {}, () => assert.fail('startup must not offer silent gameplay'));
-  await assert.rejects(output.preload(), /does not support game audio/);
-  assert.equal(output.ready, false);
-});
-
-test('startup waits for both graphics and audio, in either completion order', async t => {
-  for (const audioFirst of [false, true]) {
-    await t.test(audioFirst ? 'audio first' : 'graphics first', async () => {
-      const gameLoad = deferred(), graphics = deferred(), audioLoad = deferred();
-      const statuses = [];
-      const game = { preload_assets: () => graphics.promise, free: () => assert.fail('successful game was freed') };
-      let playable = false, audioRequested = false;
-      const preparation = prepareAssets({
-        loadGame: () => gameLoad.promise,
-        audio: { preload: () => { audioRequested = true; return audioLoad.promise; } },
-        status: message => statuses.push(message),
-      }).then(result => { playable = true; return result; });
-      assert.equal(audioRequested, true, 'audio starts while the game is downloading');
-      assert.deepEqual(statuses, ['Loading game…']);
-      if (audioFirst) audioLoad.resolve();
-      gameLoad.resolve(game);
-      await new Promise(setImmediate);
-      assert.equal(playable, false);
-      assert.equal(statuses.at(-1), 'Preparing graphics…');
-      graphics.resolve();
-      await new Promise(setImmediate);
-      assert.equal(playable, audioFirst, 'unfinished audio keeps startup blocked');
-      audioLoad.resolve();
-      assert.equal(await preparation, game);
-      assert.deepEqual(statuses, ['Loading game…', 'Preparing graphics…', 'Preparing audio…']);
-    });
-  }
-});
-
-test('game download, sprite decoding, and audio failures keep startup blocked', async t => {
-  for (const stage of ['game', 'graphics', 'audio']) {
-    await t.test(stage, async () => {
-      let freed = 0, disposed = 0;
-      const error = new Error(`${stage} failed`);
-      const game = { preload_assets() { if (stage === 'graphics') throw error; }, free() { freed++; } };
-      await assert.rejects(prepareAssets({
-        loadGame: async () => { if (stage === 'game') throw error; return game; },
-        audio: {
-          preload: async () => { if (stage === 'audio') throw error; },
-          dispose: async () => { disposed++; },
-        },
-        status() {},
-      }), error);
-      assert.equal(disposed, 1);
-      assert.equal(freed, stage === 'game' ? 0 : 1);
-    });
-  }
-});
-
-test('startup timeout blocks late completion and a fresh retry can succeed', async t => {
-  t.mock.timers.enable({ apis: ['setTimeout'] });
-  const gameLoad = deferred();
-  let disposed = 0, freed = 0;
-  const statuses = [];
-  const game = { preload_assets() {}, free() { freed++; } };
-  const rejected = assert.rejects(prepareAssets({
-    loadGame: () => gameLoad.promise,
-    audio: { preload: async () => {}, dispose: async () => { disposed++; } },
-    status: message => statuses.push(message),
-  }), /Loading timed out/);
-  t.mock.timers.tick(90000);
-  await rejected;
-  gameLoad.resolve(game);
-  await new Promise(setImmediate);
-  assert.equal(disposed, 1);
-  assert.equal(freed, 1);
-  assert.deepEqual(statuses, ['Loading game…'], 'late assets cannot update the failed screen');
-  assert.equal(await prepareAssets({ loadGame: async () => game, audio: { preload: async () => {} }, status() {} }), game);
 });
 
 test('D-pad sectors, neutral zone, and keyboard mappings', () => {

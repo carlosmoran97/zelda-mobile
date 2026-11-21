@@ -139,13 +139,6 @@ impl BrowserGame {
             .advance(elapsed_ms.max(self.game.runtime.now as f64) as u64)
             .map_err(|e| JsValue::from_str(&e))
     }
-    /// Decode every sprite sheet without advancing the game or changing saves.
-    pub fn preload_assets(&mut self) -> Result<usize, JsValue> {
-        self.game
-            .runtime
-            .preload_images()
-            .map_err(|error| JsValue::from_str(&error))
-    }
     /// Action indices follow Action::ALL; -1 releases the source.
     pub fn input(&mut self, source: String, action: i32) -> Result<(), JsValue> {
         let action = if action == -1 {
