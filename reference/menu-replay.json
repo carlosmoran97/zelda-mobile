@@ -1,0 +1,17 @@
+[
+  {"type":"wait","ms":140},
+  {"type":"press","action":"Down"},
+  {"type":"release","action":"Down"},
+  {"type":"press","action":"Primary"},
+  {"type":"wait","ms":140},
+  {"type":"assert_state","state":7},
+  {"type":"press","action":"Primary"},
+  {"type":"wait","ms":140},
+  {"type":"assert_state","state":8},
+  {"type":"press","action":"Secondary"},
+  {"type":"wait","ms":140},
+  {"type":"assert_state","state":7},
+  {"type":"press","action":"Secondary"},
+  {"type":"wait","ms":140},
+  {"type":"assert_state","state":0}
+]

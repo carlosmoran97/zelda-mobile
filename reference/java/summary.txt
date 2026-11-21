@@ -1,0 +1,17 @@
+Summary for TheLegendOfZeldaMobile-beta4.jar
+Decompiled with CFR 0.152
+
+
+j
+----------------------------
+
+b(h )
+  Unable to fully structure code
+  Could not resolve type clashes
+
+
+k
+----------------------------
+
+paint(javax.microedition.lcdui.Graphics )
+  Unable to fully structure code

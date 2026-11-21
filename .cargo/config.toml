@@ -1,0 +1,2 @@
+[env]
+CMAKE = { value = "tools/python/cmake/data/bin/cmake", relative = true }

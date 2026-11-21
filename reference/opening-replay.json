@@ -1,0 +1,22 @@
+[
+  {"type":"wait","ms":140},
+  {"type":"press","action":"Primary"},
+  {"type":"wait","ms":140},
+  {"type":"assert_state","state":30},
+  {"type":"press","action":"Primary"},
+  {"type":"wait","ms":280},
+  {"type":"assert_state","state":1},
+  {"type":"screenshot","path":"target/opening.png"},
+  {"type":"press","action":"Down"},
+  {"type":"wait","ms":560},
+  {"type":"release","action":"Down"},
+  {"type":"press","action":"Right"},
+  {"type":"wait","ms":560},
+  {"type":"release","action":"Right"},
+  {"type":"press","action":"Menu"},
+  {"type":"wait","ms":140},
+  {"type":"screenshot","path":"target/inventory.png"},
+  {"type":"press","action":"Secondary"},
+  {"type":"wait","ms":140},
+  {"type":"assert_state","state":1}
+]

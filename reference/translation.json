@@ -1,0 +1,829 @@
+{
+  "jar_sha256": "5a9183745571117f850a51414ededee4afe3b99e3dc014a7ece0cae584bc199a",
+  "methods": [
+    {
+      "class_name": "f",
+      "method": "<init>",
+      "descriptor": "()V",
+      "id": 0,
+      "instructions": 3,
+      "blocks": 1
+    },
+    {
+      "class_name": "g",
+      "method": "<init>",
+      "descriptor": "()V",
+      "id": 3,
+      "instructions": 3,
+      "blocks": 1
+    },
+    {
+      "class_name": "d",
+      "method": "<init>",
+      "descriptor": "()V",
+      "id": 4,
+      "instructions": 3,
+      "blocks": 1
+    },
+    {
+      "class_name": "n",
+      "method": "<init>",
+      "descriptor": "(I)V",
+      "id": 5,
+      "instructions": 697,
+      "blocks": 98
+    },
+    {
+      "class_name": "n",
+      "method": "a",
+      "descriptor": "(Ljavax/microedition/lcdui/Graphics;IIII)V",
+      "id": 6,
+      "instructions": 4592,
+      "blocks": 396
+    },
+    {
+      "class_name": "c",
+      "method": "<init>",
+      "descriptor": "(Ljavax/microedition/lcdui/Image;IIIILh;)V",
+      "id": 17,
+      "instructions": 130,
+      "blocks": 12
+    },
+    {
+      "class_name": "c",
+      "method": "a",
+      "descriptor": "(Lh;Lb;Lk;Z)I",
+      "id": 18,
+      "instructions": 1471,
+      "blocks": 180
+    },
+    {
+      "class_name": "c",
+      "method": "a",
+      "descriptor": "(Ljavax/microedition/lcdui/Graphics;IIII)V",
+      "id": 19,
+      "instructions": 2197,
+      "blocks": 150
+    },
+    {
+      "class_name": "j",
+      "method": "<init>",
+      "descriptor": "(Ljavax/microedition/lcdui/Graphics;Ljavax/microedition/lcdui/Graphics;Lh;Lk;)V",
+      "id": 26,
+      "instructions": 239,
+      "blocks": 14
+    },
+    {
+      "class_name": "j",
+      "method": "a",
+      "descriptor": "(Ljavax/microedition/lcdui/Graphics;IIIILh;)V",
+      "id": 27,
+      "instructions": 544,
+      "blocks": 64
+    },
+    {
+      "class_name": "j",
+      "method": "a",
+      "descriptor": "()I",
+      "id": 28,
+      "instructions": 114,
+      "blocks": 27
+    },
+    {
+      "class_name": "j",
+      "method": "a",
+      "descriptor": "(Lh;)V",
+      "id": 29,
+      "instructions": 234,
+      "blocks": 39
+    },
+    {
+      "class_name": "j",
+      "method": "a",
+      "descriptor": "(IIILh;Z)Z",
+      "id": 30,
+      "instructions": 1141,
+      "blocks": 185
+    },
+    {
+      "class_name": "j",
+      "method": "a",
+      "descriptor": "(Lh;Lb;Z)I",
+      "id": 31,
+      "instructions": 1225,
+      "blocks": 173
+    },
+    {
+      "class_name": "j",
+      "method": "a",
+      "descriptor": "(IIIII)Z",
+      "id": 32,
+      "instructions": 502,
+      "blocks": 122
+    },
+    {
+      "class_name": "j",
+      "method": "a",
+      "descriptor": "(Lh;Lb;)I",
+      "id": 33,
+      "instructions": 930,
+      "blocks": 137
+    },
+    {
+      "class_name": "j",
+      "method": "a",
+      "descriptor": "(IIZ)I",
+      "id": 34,
+      "instructions": 116,
+      "blocks": 20
+    },
+    {
+      "class_name": "j",
+      "method": "a",
+      "descriptor": "(IILh;I)V",
+      "id": 35,
+      "instructions": 183,
+      "blocks": 23
+    },
+    {
+      "class_name": "j",
+      "method": "b",
+      "descriptor": "(Lh;)V",
+      "id": 36,
+      "instructions": 7732,
+      "blocks": 964
+    },
+    {
+      "class_name": "j",
+      "method": "c",
+      "descriptor": "(Lh;)V",
+      "id": 37,
+      "instructions": 322,
+      "blocks": 43
+    },
+    {
+      "class_name": "j",
+      "method": "a",
+      "descriptor": "(IILh;)I",
+      "id": 38,
+      "instructions": 356,
+      "blocks": 60
+    },
+    {
+      "class_name": "j",
+      "method": "a",
+      "descriptor": "(Ljavax/microedition/lcdui/Graphics;IIIILh;Lb;)Z",
+      "id": 39,
+      "instructions": 1401,
+      "blocks": 220
+    },
+    {
+      "class_name": "j",
+      "method": "a",
+      "descriptor": "(ILjavax/microedition/lcdui/Graphics;II)Z",
+      "id": 40,
+      "instructions": 323,
+      "blocks": 24
+    },
+    {
+      "class_name": "j",
+      "method": "a",
+      "descriptor": "(Ljavax/microedition/lcdui/Graphics;III)Z",
+      "id": 41,
+      "instructions": 313,
+      "blocks": 23
+    },
+    {
+      "class_name": "j",
+      "method": "a",
+      "descriptor": "(Ljava/lang/String;Ljavax/microedition/lcdui/Graphics;Lh;IIIIZ)Z",
+      "id": 42,
+      "instructions": 1616,
+      "blocks": 291
+    },
+    {
+      "class_name": "j",
+      "method": "a",
+      "descriptor": "(II)Z",
+      "id": 43,
+      "instructions": 50,
+      "blocks": 8
+    },
+    {
+      "class_name": "j",
+      "method": "b",
+      "descriptor": "(IILh;)V",
+      "id": 44,
+      "instructions": 172,
+      "blocks": 26
+    },
+    {
+      "class_name": "j",
+      "method": "d",
+      "descriptor": "(Lh;)V",
+      "id": 45,
+      "instructions": 218,
+      "blocks": 40
+    },
+    {
+      "class_name": "b",
+      "method": "<init>",
+      "descriptor": "()V",
+      "id": 93,
+      "instructions": 21,
+      "blocks": 1
+    },
+    {
+      "class_name": "b",
+      "method": "<init>",
+      "descriptor": "(ZZIIII)V",
+      "id": 94,
+      "instructions": 67,
+      "blocks": 3
+    },
+    {
+      "class_name": "b",
+      "method": "run",
+      "descriptor": "()V",
+      "id": 95,
+      "instructions": 430,
+      "blocks": 85
+    },
+    {
+      "class_name": "b",
+      "method": "a",
+      "descriptor": "(II)V",
+      "id": 96,
+      "instructions": 444,
+      "blocks": 120
+    },
+    {
+      "class_name": "b",
+      "method": "a",
+      "descriptor": "(I)Z",
+      "id": 97,
+      "instructions": 44,
+      "blocks": 7
+    },
+    {
+      "class_name": "b",
+      "method": "b",
+      "descriptor": "(I)V",
+      "id": 98,
+      "instructions": 77,
+      "blocks": 14
+    },
+    {
+      "class_name": "b",
+      "method": "a",
+      "descriptor": "(Ljava/lang/String;)Z",
+      "id": 99,
+      "instructions": 101,
+      "blocks": 16
+    },
+    {
+      "class_name": "b",
+      "method": "playerUpdate",
+      "descriptor": "(Ljavax/microedition/media/Player;Ljava/lang/String;Ljava/lang/Object;)V",
+      "id": 100,
+      "instructions": 34,
+      "blocks": 11
+    },
+    {
+      "class_name": "b",
+      "method": "a",
+      "descriptor": "()Z",
+      "id": 101,
+      "instructions": 72,
+      "blocks": 11
+    },
+    {
+      "class_name": "l",
+      "method": "<init>",
+      "descriptor": "(Ljavax/microedition/lcdui/Image;IIBI)V",
+      "id": 80,
+      "instructions": 2135,
+      "blocks": 98
+    },
+    {
+      "class_name": "l",
+      "method": "a",
+      "descriptor": "(Ljavax/microedition/lcdui/Graphics;IIII)V",
+      "id": 120,
+      "instructions": 8316,
+      "blocks": 593
+    },
+    {
+      "class_name": "l",
+      "method": "a",
+      "descriptor": "()V",
+      "id": 121,
+      "instructions": 33,
+      "blocks": 7
+    },
+    {
+      "class_name": "l",
+      "method": "a",
+      "descriptor": "(Ljavax/microedition/lcdui/Graphics;IILh;)V",
+      "id": 81,
+      "instructions": 389,
+      "blocks": 39
+    },
+    {
+      "class_name": "h",
+      "method": "<init>",
+      "descriptor": "()V",
+      "id": 124,
+      "instructions": 236,
+      "blocks": 1
+    },
+    {
+      "class_name": "h",
+      "method": "a",
+      "descriptor": "()I",
+      "id": 20,
+      "instructions": 108,
+      "blocks": 24
+    },
+    {
+      "class_name": "h",
+      "method": "a",
+      "descriptor": "([BZLk;)V",
+      "id": 125,
+      "instructions": 378,
+      "blocks": 57
+    },
+    {
+      "class_name": "h",
+      "method": "b",
+      "descriptor": "()[B",
+      "id": 126,
+      "instructions": 274,
+      "blocks": 37
+    },
+    {
+      "class_name": "h",
+      "method": "a",
+      "descriptor": "(Ljavax/microedition/lcdui/Graphics;IIII)V",
+      "id": 127,
+      "instructions": 2374,
+      "blocks": 194
+    },
+    {
+      "class_name": "p",
+      "method": "<init>",
+      "descriptor": "(Ljavax/microedition/lcdui/Image;III)V",
+      "id": 91,
+      "instructions": 526,
+      "blocks": 103
+    },
+    {
+      "class_name": "p",
+      "method": "a",
+      "descriptor": "(Ljavax/microedition/lcdui/Graphics;IIII)V",
+      "id": 92,
+      "instructions": 1031,
+      "blocks": 120
+    },
+    {
+      "class_name": "p",
+      "method": "a",
+      "descriptor": "()V",
+      "id": 145,
+      "instructions": 73,
+      "blocks": 13
+    },
+    {
+      "class_name": "o",
+      "method": "<init>",
+      "descriptor": "(Lj;)V",
+      "id": 82,
+      "instructions": 57,
+      "blocks": 1
+    },
+    {
+      "class_name": "o",
+      "method": "a",
+      "descriptor": "()V",
+      "id": 83,
+      "instructions": 42,
+      "blocks": 7
+    },
+    {
+      "class_name": "o",
+      "method": "b",
+      "descriptor": "()V",
+      "id": 85,
+      "instructions": 52,
+      "blocks": 7
+    },
+    {
+      "class_name": "o",
+      "method": "c",
+      "descriptor": "()V",
+      "id": 87,
+      "instructions": 42,
+      "blocks": 7
+    },
+    {
+      "class_name": "o",
+      "method": "d",
+      "descriptor": "()V",
+      "id": 89,
+      "instructions": 42,
+      "blocks": 7
+    },
+    {
+      "class_name": "o",
+      "method": "a",
+      "descriptor": "(I)Ljavax/microedition/lcdui/Image;",
+      "id": 84,
+      "instructions": 745,
+      "blocks": 173
+    },
+    {
+      "class_name": "o",
+      "method": "b",
+      "descriptor": "(I)Ljavax/microedition/lcdui/Image;",
+      "id": 86,
+      "instructions": 539,
+      "blocks": 123
+    },
+    {
+      "class_name": "o",
+      "method": "c",
+      "descriptor": "(I)Ljavax/microedition/lcdui/Image;",
+      "id": 88,
+      "instructions": 3579,
+      "blocks": 828
+    },
+    {
+      "class_name": "o",
+      "method": "d",
+      "descriptor": "(I)Ljavax/microedition/lcdui/Image;",
+      "id": 90,
+      "instructions": 2032,
+      "blocks": 460
+    },
+    {
+      "class_name": "i",
+      "method": "<init>",
+      "descriptor": "()V",
+      "id": 47,
+      "instructions": 3,
+      "blocks": 1
+    },
+    {
+      "class_name": "e",
+      "method": "<init>",
+      "descriptor": "()V",
+      "id": 46,
+      "instructions": 3,
+      "blocks": 1
+    },
+    {
+      "class_name": "m",
+      "method": "<init>",
+      "descriptor": "(LZelda;)V",
+      "id": 148,
+      "instructions": 6,
+      "blocks": 1
+    },
+    {
+      "class_name": "m",
+      "method": "run",
+      "descriptor": "()V",
+      "id": 149,
+      "instructions": 364,
+      "blocks": 22
+    },
+    {
+      "class_name": "a",
+      "method": "<init>",
+      "descriptor": "(LZelda;)V",
+      "id": 164,
+      "instructions": 6,
+      "blocks": 1
+    },
+    {
+      "class_name": "a",
+      "method": "run",
+      "descriptor": "()V",
+      "id": 165,
+      "instructions": 11,
+      "blocks": 1
+    },
+    {
+      "class_name": "Zelda",
+      "method": "<init>",
+      "descriptor": "()V",
+      "id": 166,
+      "instructions": 129,
+      "blocks": 1
+    },
+    {
+      "class_name": "Zelda",
+      "method": "startApp",
+      "descriptor": "()V",
+      "id": 167,
+      "instructions": 14,
+      "blocks": 3
+    },
+    {
+      "class_name": "Zelda",
+      "method": "pauseApp",
+      "descriptor": "()V",
+      "id": 168,
+      "instructions": 10,
+      "blocks": 3
+    },
+    {
+      "class_name": "Zelda",
+      "method": "destroyApp",
+      "descriptor": "(Z)V",
+      "id": 154,
+      "instructions": 55,
+      "blocks": 9
+    },
+    {
+      "class_name": "Zelda",
+      "method": "commandAction",
+      "descriptor": "(Ljavax/microedition/lcdui/Command;Ljavax/microedition/lcdui/Displayable;)V",
+      "id": 169,
+      "instructions": 267,
+      "blocks": 22
+    },
+    {
+      "class_name": "Zelda",
+      "method": "a",
+      "descriptor": "(LZelda;)Lk;",
+      "id": 150,
+      "instructions": 3,
+      "blocks": 1
+    },
+    {
+      "class_name": "Zelda",
+      "method": "b",
+      "descriptor": "(LZelda;)Ljavax/microedition/lcdui/Command;",
+      "id": 151,
+      "instructions": 3,
+      "blocks": 1
+    },
+    {
+      "class_name": "Zelda",
+      "method": "c",
+      "descriptor": "(LZelda;)Ljavax/microedition/lcdui/Command;",
+      "id": 152,
+      "instructions": 3,
+      "blocks": 1
+    },
+    {
+      "class_name": "Zelda",
+      "method": "d",
+      "descriptor": "(LZelda;)Ljavax/microedition/lcdui/Command;",
+      "id": 153,
+      "instructions": 3,
+      "blocks": 1
+    },
+    {
+      "class_name": "Zelda",
+      "method": "e",
+      "descriptor": "(LZelda;)Ljavax/microedition/lcdui/Command;",
+      "id": 155,
+      "instructions": 3,
+      "blocks": 1
+    },
+    {
+      "class_name": "Zelda",
+      "method": "f",
+      "descriptor": "(LZelda;)Ljavax/microedition/lcdui/Command;",
+      "id": 156,
+      "instructions": 3,
+      "blocks": 1
+    },
+    {
+      "class_name": "Zelda",
+      "method": "g",
+      "descriptor": "(LZelda;)Ljavax/microedition/lcdui/Command;",
+      "id": 157,
+      "instructions": 3,
+      "blocks": 1
+    },
+    {
+      "class_name": "Zelda",
+      "method": "h",
+      "descriptor": "(LZelda;)Ljavax/microedition/lcdui/Command;",
+      "id": 158,
+      "instructions": 3,
+      "blocks": 1
+    },
+    {
+      "class_name": "Zelda",
+      "method": "i",
+      "descriptor": "(LZelda;)Ljavax/microedition/lcdui/Command;",
+      "id": 159,
+      "instructions": 3,
+      "blocks": 1
+    },
+    {
+      "class_name": "k",
+      "method": "<init>",
+      "descriptor": "()V",
+      "id": 185,
+      "instructions": 1733,
+      "blocks": 1
+    },
+    {
+      "class_name": "k",
+      "method": "<init>",
+      "descriptor": "(Ljavax/microedition/lcdui/Display;LZelda;)V",
+      "id": 177,
+      "instructions": 2192,
+      "blocks": 34
+    },
+    {
+      "class_name": "k",
+      "method": "a",
+      "descriptor": "()V",
+      "id": 178,
+      "instructions": 125,
+      "blocks": 8
+    },
+    {
+      "class_name": "k",
+      "method": "a",
+      "descriptor": "(Z)V",
+      "id": 180,
+      "instructions": 47,
+      "blocks": 7
+    },
+    {
+      "class_name": "k",
+      "method": "b",
+      "descriptor": "()V",
+      "id": 181,
+      "instructions": 157,
+      "blocks": 34
+    },
+    {
+      "class_name": "k",
+      "method": "b",
+      "descriptor": "(Z)V",
+      "id": 186,
+      "instructions": 430,
+      "blocks": 55
+    },
+    {
+      "class_name": "k",
+      "method": "c",
+      "descriptor": "()V",
+      "id": 182,
+      "instructions": 176,
+      "blocks": 26
+    },
+    {
+      "class_name": "k",
+      "method": "b",
+      "descriptor": "(I)V",
+      "id": 187,
+      "instructions": 30,
+      "blocks": 9
+    },
+    {
+      "class_name": "k",
+      "method": "d",
+      "descriptor": "()V",
+      "id": 183,
+      "instructions": 78,
+      "blocks": 15
+    },
+    {
+      "class_name": "k",
+      "method": "paint",
+      "descriptor": "(Ljavax/microedition/lcdui/Graphics;)V",
+      "id": 188,
+      "instructions": 9561,
+      "blocks": 646
+    },
+    {
+      "class_name": "k",
+      "method": "a",
+      "descriptor": "(Ljava/lang/Object;)V",
+      "id": 189,
+      "instructions": 52,
+      "blocks": 6
+    },
+    {
+      "class_name": "k",
+      "method": "a",
+      "descriptor": "(Ljavax/microedition/lcdui/Graphics;Z)V",
+      "id": 190,
+      "instructions": 389,
+      "blocks": 76
+    },
+    {
+      "class_name": "k",
+      "method": "a",
+      "descriptor": "(Ljavax/microedition/lcdui/Graphics;)V",
+      "id": 191,
+      "instructions": 664,
+      "blocks": 45
+    },
+    {
+      "class_name": "k",
+      "method": "a",
+      "descriptor": "(Ljavax/microedition/lcdui/Graphics;II)V",
+      "id": 192,
+      "instructions": 179,
+      "blocks": 12
+    },
+    {
+      "class_name": "k",
+      "method": "pointerPressed",
+      "descriptor": "(II)V",
+      "id": 193,
+      "instructions": 19,
+      "blocks": 1
+    },
+    {
+      "class_name": "k",
+      "method": "pointerDragged",
+      "descriptor": "(II)V",
+      "id": 194,
+      "instructions": 32,
+      "blocks": 1
+    },
+    {
+      "class_name": "k",
+      "method": "pointerReleased",
+      "descriptor": "(II)V",
+      "id": 195,
+      "instructions": 79,
+      "blocks": 10
+    },
+    {
+      "class_name": "k",
+      "method": "keyPressed",
+      "descriptor": "(I)V",
+      "id": 196,
+      "instructions": 50,
+      "blocks": 11
+    },
+    {
+      "class_name": "k",
+      "method": "keyReleased",
+      "descriptor": "(I)V",
+      "id": 197,
+      "instructions": 33,
+      "blocks": 7
+    },
+    {
+      "class_name": "k",
+      "method": "a",
+      "descriptor": "(II)V",
+      "id": 198,
+      "instructions": 63,
+      "blocks": 13
+    },
+    {
+      "class_name": "k",
+      "method": "b",
+      "descriptor": "(Ljavax/microedition/lcdui/Graphics;)V",
+      "id": 199,
+      "instructions": 1293,
+      "blocks": 122
+    },
+    {
+      "class_name": "k",
+      "method": "b",
+      "descriptor": "(Ljavax/microedition/lcdui/Graphics;II)V",
+      "id": 200,
+      "instructions": 263,
+      "blocks": 37
+    },
+    {
+      "class_name": "k",
+      "method": "a",
+      "descriptor": "(I)V",
+      "id": 179,
+      "instructions": 3081,
+      "blocks": 581
+    },
+    {
+      "class_name": "k",
+      "method": "c",
+      "descriptor": "(I)V",
+      "id": 201,
+      "instructions": 79,
+      "blocks": 27
+    },
+    {
+      "class_name": "k",
+      "method": "a",
+      "descriptor": "(Ljavax/microedition/lcdui/Graphics;I)V",
+      "id": 202,
+      "instructions": 408,
+      "blocks": 24
+    }
+  ]
+}

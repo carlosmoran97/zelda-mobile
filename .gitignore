@@ -1,0 +1,16 @@
+/target/
+/tools/python/
+/tools/cfr-*.jar
+/dist/
+*.log
+.DS_Store
+__pycache__/
+*.py[cod]
+/tools/generaluser-files.json
+/emulator/config/
+/emulator/freej2me_system/
+/emulator/rms/
+/emulator/savedata/
+/config/
+/freej2me_system/
+/rms/
