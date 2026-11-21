@@ -40,9 +40,14 @@ for the web build. Keep the HTTP server running; opening the HTML file directly
 does not support Wasm loading.
 
 The static output is `dist/web/`. Resource URLs are relative, including worker
-and audio assets, so hosting beneath a repository path works. The large soundfont
-is fetched only when sound is enabled. A dedicated worker runs the Rust synth at
-the browser audio sample rate and transfers PCM blocks to an AudioWorklet.
+and audio assets, so hosting beneath a repository path works. Startup loads the
+game and audio concurrently, decodes all sprite sheets into the image cache, and
+waits for the soundfont, MIDI tracks, effects, worker, and AudioWorklet before
+enabling Play. Audio stays suspended until the Play gesture; no asset downloads
+are needed during gameplay. A failed or unsupported load keeps Play blocked and
+offers Retry; a startup attempt times out after 90 seconds. A dedicated worker
+runs the Rust synth at the browser audio sample rate and transfers PCM blocks to
+an AudioWorklet.
 No shared-memory or cross-origin isolation headers are required.
 
 Run `node --test scripts/web-tests.mjs` after building for deterministic tests of

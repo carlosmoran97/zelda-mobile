@@ -84,7 +84,7 @@ def main():
 <p><a href="./licenses/">Bundled dependency licenses</a></p>
 <p><a href="https://github.com/carlosmoran97/zelda-mobile">Source code and dependency notices</a></p></article></html>''')
     size = sum(p.stat().st_size for p in output.rglob('*') if p.is_file())
-    print(f'Web build ready: {output} ({size / 1024 / 1024:.1f} MiB, including optional audio)')
+    print(f'Web build ready: {output} ({size / 1024 / 1024:.1f} MiB, including audio)')
     print('Serve locally: python3 -m http.server 8080 --directory dist/web')
 
 

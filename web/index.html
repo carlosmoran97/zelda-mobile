@@ -13,7 +13,7 @@
   <main class="handheld" aria-label="Zelda Mobile game">
     <header class="topbar">
       <span class="brand"><span class="triforce" aria-hidden="true">▲</span> ZELDA <span>MOBILE</span></span>
-      <button id="sound" class="utility" aria-label="Enable sound" aria-pressed="false" title="Enable sound">
+      <button id="sound" class="utility" aria-label="Enable sound" aria-pressed="false" title="Enable sound" disabled>
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
           <path d="M11 5 6 9H3v6h3l5 4Z" />
           <g class="sound-on"><path d="M15 8a6 6 0 0 1 0 8M18 5a10 10 0 0 1 0 14" /></g>
@@ -27,27 +27,28 @@
         <div id="overlay" class="overlay">
           <span class="crest" aria-hidden="true">▲</span>
           <h1 id="overlay-title">Zelda Mobile</h1>
-          <p id="overlay-text" role="status">Loading your adventure…</p>
-          <button id="resume" class="start" hidden>Play</button>
+          <p id="overlay-text" role="status" aria-atomic="true">Loading game…</p>
+          <span id="loading" class="loading" aria-hidden="true"></span>
+          <button id="resume" class="start" hidden disabled>Play</button>
         </div>
       </div>
     </section>
-    <section class="control-deck" aria-label="Touch controls">
+    <section class="control-deck" aria-label="Touch controls" inert>
       <div class="commands">
         <button data-action="7" id="command-left" class="command" disabled>Left command</button>
         <button data-action="8" id="command-right" class="command" disabled>Right command</button>
       </div>
       <div class="play-controls">
         <div class="dpad" aria-label="Directional pad">
-          <button data-action="0" class="direction up" aria-label="Move up"><span aria-hidden="true">▲</span></button>
-          <button data-action="2" class="direction left" aria-label="Move left"><span aria-hidden="true">◀</span></button>
+          <button data-action="0" class="direction up" aria-label="Move up" disabled><span aria-hidden="true">▲</span></button>
+          <button data-action="2" class="direction left" aria-label="Move left" disabled><span aria-hidden="true">◀</span></button>
           <span class="pad-center" aria-hidden="true">◆</span>
-          <button data-action="3" class="direction right" aria-label="Move right"><span aria-hidden="true">▶</span></button>
-          <button data-action="1" class="direction down" aria-label="Move down"><span aria-hidden="true">▼</span></button>
+          <button data-action="3" class="direction right" aria-label="Move right" disabled><span aria-hidden="true">▶</span></button>
+          <button data-action="1" class="direction down" aria-label="Move down" disabled><span aria-hidden="true">▼</span></button>
         </div>
         <div class="action-buttons">
-          <button data-action="5" class="action secondary" aria-label="B: secondary action and back">B</button>
-          <button data-action="4" class="action primary" aria-label="A: primary action and confirm">A</button>
+          <button data-action="5" class="action secondary" aria-label="B: secondary action and back" disabled>B</button>
+          <button data-action="4" class="action primary" aria-label="A: primary action and confirm" disabled>A</button>
         </div>
       </div>
     </section>
