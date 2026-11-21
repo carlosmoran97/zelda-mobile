@@ -1,7 +1,7 @@
-//! Native host services for the statically translated game. This is not a JVM:
-//! executable game methods live in generated Rust; no bytecode is loaded at run time.
+//! Native object storage and platform services for the Rust game.
+//! Legacy signatures are isolated in `game::compat` for reference tooling.
 use crate::{
-    generated,
+    game,
     graphics::{self, Bitmap, Fonts, Graphics, Surface},
 };
 use std::{
@@ -52,17 +52,8 @@ impl V {
             _ => panic!("expected reference, got {self:?}"),
         }
     }
-    pub fn wide(self) -> bool {
-        matches!(self, Self::J(_) | Self::D(_))
-    }
 }
 pub type JResult = Result<V, u32>;
-pub fn pop(s: &mut Vec<V>) -> V {
-    s.pop().expect("invalid translated operand stack")
-}
-pub fn take_args(s: &mut Vec<V>, n: usize) -> Vec<V> {
-    s.split_off(s.len() - n)
-}
 
 #[derive(Clone)]
 pub struct Stream {
@@ -226,7 +217,7 @@ impl Runtime {
         self.exception("java/lang/NullPointerException", "null reference")
     }
     pub fn trace_error(&mut self, method: usize, pc: u32, e: u32) {
-        let m = generated::METHODS[method];
+        let m = game::METHODS[method];
         let msg = format!(
             "{}.{}{} at {pc}: {}: {}",
             m.0,
@@ -251,7 +242,7 @@ impl Runtime {
             .obj(o)
             .fields
             .get(&f)
-            .unwrap_or(&default_value(generated::FIELDS[f].2)))
+            .unwrap_or(&default_value(game::FIELDS[f].2)))
     }
     pub fn set(&mut self, o: u32, f: usize, v: V) -> JResult {
         if o == 0 {
@@ -263,13 +254,13 @@ impl Runtime {
     pub fn field_id(class: &str, name: &str, desc: &str) -> usize {
         let mut class = class;
         loop {
-            if let Some(id) = generated::FIELDS
+            if let Some(id) = game::FIELDS
                 .iter()
                 .position(|x| x.0 == class && x.1 == name && x.2 == desc)
             {
                 return id;
             }
-            class = generated::parent(class);
+            class = game::parent(class);
             assert!(!class.is_empty(), "unknown field {name}{desc}");
         }
     }
@@ -285,10 +276,10 @@ impl Runtime {
         if let Some(v) = self.statics.get(&f) {
             return *v;
         }
-        let value = if generated::FIELDS[f].0 == "java/lang/System" {
+        let value = if game::FIELDS[f].0 == "java/lang/System" {
             V::R(self.alloc("java/io/PrintStream", Native::Empty))
         } else {
-            default_value(generated::FIELDS[f].2)
+            default_value(game::FIELDS[f].2)
         };
         self.statics.insert(f, value);
         value
@@ -296,13 +287,13 @@ impl Runtime {
     pub fn method_id(class: &str, name: &str, desc: &str) -> usize {
         let mut class = class;
         loop {
-            if let Some(id) = generated::METHODS
+            if let Some(id) = game::METHODS
                 .iter()
                 .position(|x| x.0 == class && x.1 == name && x.2 == desc)
             {
                 return id;
             }
-            class = generated::parent(class);
+            class = game::parent(class);
             assert!(!class.is_empty(), "unknown method {name}{desc}");
         }
     }
@@ -318,20 +309,20 @@ impl Runtime {
             if o == 0 {
                 return Err(self.null());
             }
-            let (_, name, desc) = generated::METHODS[id];
+            let (_, name, desc) = game::METHODS[id];
             let mut class = self.obj(o).class;
             while !class.is_empty() {
-                if let Some(i) = generated::METHODS
+                if let Some(i) = game::METHODS
                     .iter()
                     .position(|x| x.0 == class && x.1 == name && x.2 == desc)
                 {
                     id = i;
                     break;
                 }
-                class = generated::parent(class);
+                class = game::parent(class);
             }
         }
-        generated::dispatch(self, id, a)
+        game::dispatch(self, id, a)
     }
     pub fn is_instance(&self, o: u32, want: &str) -> bool {
         if o == 0 {
@@ -345,7 +336,7 @@ impl Runtime {
             if class == want {
                 return true;
             }
-            class = generated::parent(class);
+            class = game::parent(class);
         }
         let class = self.obj(o).class;
         if want.starts_with('[') {
@@ -557,7 +548,7 @@ impl Runtime {
         }
     }
     pub fn native(&mut self, id: usize, a: &[V]) -> JResult {
-        let (class, name, desc) = generated::METHODS[id];
+        let (class, name, desc) = game::METHODS[id];
         let recv = || a[0].r();
         let int = |i: usize| a[i].i();
         match (class, name, desc) {

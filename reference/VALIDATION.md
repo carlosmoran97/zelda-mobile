@@ -7,15 +7,18 @@ save directories and the unmodified supplied JAR as a development-only oracle.
 |---|---|
 | Original archive resources compared byte for byte | 757 / 757 identical |
 | Strict XMOB parsing, including complete consumption | 505 / 505 pass |
-| Maps loaded and painted through translated original game logic | 505 / 505 pass |
+| Maps loaded and painted through maintained Rust game logic | 505 / 505 pass |
 | Original PNG decoding | 240 / 240 pass |
 | Original MIDI parsing and sample rendering | 11 / 11 pass |
 | Opening gameplay frame compared with original JAR | 0 differing pixels / 49,920 scene pixels |
 | Opening, down/right movement, sword pickup, heart pickup, sword action, inventory | 7 / 7 snapshots match the original |
 | Original serialized player bytes in those snapshots | All 172 bytes match for each snapshot |
-| Original encoder/decoder and native storage round trips | All three character slots pass |
+| Rust encoder/decoder and native storage round trips | All three character slots pass |
 | Input aggregation, opposite directions, disconnection, dead zone | Unit tests pass |
 | Signed arrays, Java PRNG, collection, drawing transforms/clipping, damaged data | Unit tests pass |
+| Default save wire layout, restored upgrades/Triforce flags, partial loads of truncated saves | Unit tests pass |
+| Projectile combat, shields/reflection, boss vulnerabilities, returning shots and boundaries | 2,496 cases match pre-migration state and frames |
+| All sprite IDs in four catalogs under two visual variants: sprite signatures, cache slots, reuse and aging | 2,048 / 2,048 match the original JAR |
 | Native macOS SDL window and audio-device initialization | Pass |
 | Connected hardware enumeration | Xbox Series X Controller detected |
 | Installed app: keyboard navigation, movement, inventory and return | Verified in the native window |
@@ -24,6 +27,12 @@ save directories and the unmodified supplied JAR as a development-only oracle.
 | Fullscreen after the macOS transition settles | Portrait presentation and letterboxing verified |
 | Standalone app away from the source folder | Launches and starts gameplay using only bundled resources |
 | Local application signature and linked dependencies | Valid signature; only macOS system libraries/frameworks |
+
+The Rust migration is checked with 13 unit tests, the full room audit, both
+replays, save-slot round trips and the original-JAR gameplay oracle. The sprite
+oracle compares opaque RGB and all alpha values, omitting translucent RGB to
+avoid Java image-surface rounding differences. Original asset files are also
+checked byte for byte.
 
 Font capture retains reference glyphs, character advances, line heights and
 baselines for the original platform's 13/15/17-pixel fonts. Native rendering uses

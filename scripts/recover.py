@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Reproduce the readable decompilation, Rust translation, and resource extraction."""
+"""Recover reference Java, original assets, and font atlases. Never writes Rust."""
 from pathlib import Path
 import hashlib
 import json
@@ -26,9 +26,8 @@ with zipfile.ZipFile(jar) as z:
             data=z.read(name);dest=root/'assets'/name;dest.parent.mkdir(parents=True,exist_ok=True);dest.write_bytes(data)
             manifest[name]={'bytes':len(data),'sha256':hashlib.sha256(data).hexdigest()}
 (root/'reference/asset-manifest.json').write_text(json.dumps(manifest,indent=2)+'\n')
-subprocess.run(['python3',str(root/'scripts/translate.py')],cwd=root,check=True)
 work=root/'target/reference-run'
 work.mkdir(parents=True,exist_ok=True)
 subprocess.run(['javac','-cp',str(root/'emulator/freej2me_plus.jar'),'-d',str(work),str(root/'reference/ExportFonts.java')],check=True)
 subprocess.run(['java','-Djava.awt.headless=true','-Dfile.encoding=ISO_8859_1','-cp',str(work)+':'+str(root/'emulator/freej2me_plus.jar'),'ExportFonts',str(jar),str(root/'assets/fonts')],cwd=work,check=True)
-print('Recovered Java, generated Rust, original resources, glyphs and metrics are up to date.')
+print('Reference Java, original resources, glyphs and metrics are up to date. Native Rust sources were not modified.')

@@ -20,21 +20,31 @@ cargo test --locked --offline
 ```
 
 SDL3 is built from source and linked statically. The packaged application is
-locally signed and uses macOS system frameworks. The generated Rust and font
-atlases are included, so a normal build does not require Java.
+locally signed and uses macOS system frameworks. The native Rust sources and font
+atlases are included, so a normal build does not require Java or the original JAR.
 
-## Reproducing the port
+## Editing the game
 
-The original JAR, recovered Java, extracted resources and generated Rust are
-retained for inspection. With Java/Javac installed, run:
+Maintain the Rust implementation directly in `src/game/`. The module guide in
+the [porting notes](../reference/PORTING.md) maps the original classes to named
+Rust files and describes the host-service boundary. Start with `canvas/controls.rs`
+for input, `world/collision.rs` for movement, `world/projectiles.rs` for combat,
+and `player_save.rs` for save data. `canvas.rs` and `world.rs` group the respective
+submodules.
+There are no generated Rust files and no source translation command.
+
+## Recovering reference material
+
+The original JAR and recovered Java are retained for inspection and optional
+behavior comparisons. With Java/Javac installed, run:
 
 ```sh
 python3 scripts/recover.py
 ```
 
-This reproduces the decompilation, resource extraction, font capture and Rust
-translation. See the [porting notes](../reference/PORTING.md) for the architecture,
-class roles, map format and save encoding.
+This recovers the Java decompilation, original assets and font atlases. It never
+writes Rust sources. The Java is reference material; Cargo compiles the
+independently maintained Rust implementation.
 
 ## Checking changes
 
@@ -45,6 +55,10 @@ python3 scripts/validate.py
 This runs unit tests, resource and audio checks, loading and rendering of all map
 variants, save round trips, and gameplay/menu replays. With Java available, it
 also compares native behavior and save bytes against the unmodified original JAR.
+The sprite oracle also compares all 256 IDs in four catalogs under two visual
+variants: 2,048 cases covering sprite pixels, shared cache slots, reuse and aging.
+Sprite checksums compare opaque RGB and all alpha values; translucent RGB is
+omitted because Java's image conversion rounds those colors.
 Reports and frames are written under `target/`, using isolated saves.
 
 See the [validation report](../reference/VALIDATION.md) for measured results and

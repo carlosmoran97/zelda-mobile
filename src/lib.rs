@@ -1,7 +1,7 @@
 //! Zelda Mobile game logic and native platform services.
 pub mod audio;
 pub mod engine;
-mod generated;
+mod game;
 pub mod graphics;
 pub mod input;
 pub mod maps;

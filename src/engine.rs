@@ -264,98 +264,16 @@ impl Game {
         Ok(())
     }
     fn poll_sound(&mut self) -> Result<(), String> {
-        // The original b.run() owns a 10ms polling thread. Its finite work is
-        // performed cooperatively; MIDI/WAV rendering runs on SDL's audio thread.
-        for o in self.runtime.threads.clone() {
-            if self.runtime.obj(o).class != "b" {
+        for sound in self.runtime.threads.clone() {
+            if self.runtime.obj(sound).class != "b" {
                 return Err("Unexpected game worker".into());
             }
-            if self.started_threads.insert(o) {
-                let ok = self
-                    .runtime
-                    .call(o, "a", "()Z", &[])
-                    .map_err(|e| self.error(e))?;
-                self.runtime.put(o, "k", "Z", ok);
-                self.runtime
-                    .put(o, "b", "Ljavax/microedition/media/Player;", V::R(0));
-                self.runtime.put(o, "l", "I", V::I(-10));
-                self.runtime
-                    .call(o, "a", "(II)V", &[V::I(-1), V::I(0)])
-                    .map_err(|e| self.error(e))?;
+            if self.started_threads.insert(sound) {
+                crate::game::sound::initialize_worker(&mut self.runtime, sound)
+                    .map_err(|error| self.error(error))?;
             }
-            if self.runtime.field(o, "e", "Z").i() != 0 {
-                continue;
-            }
-            let mut active = self.runtime.field(o, "o", "I").i();
-            let began = self.runtime.field(o, "p", "J").j() as u64;
-            let fx = self
-                .runtime
-                .field(o, "c", "Ljavax/microedition/media/Player;")
-                .r();
-            let durations = [0, 375, 450, 320, 500, 100, 1300, 2300, 500, 1100];
-            if active > 0 && self.runtime.now.saturating_sub(began) > durations[active as usize] {
-                if fx != 0 {
-                    self.runtime
-                        .call(fx, "stop", "()V", &[])
-                        .map_err(|e| self.error(e))?;
-                }
-                active = 0;
-                self.runtime.put(o, "o", "I", V::I(0));
-            }
-            let mut request = self.runtime.field(o, "d", "I").i();
-            let pending = self.runtime.field(o, "i", "I").i();
-            if request == 0 && pending != 0 && active == 0 {
-                request = pending;
-                self.runtime.put(o, "d", "I", V::I(request));
-                self.runtime.put(o, "i", "I", V::I(0));
-            }
-            if request == 0
-                || self.runtime.field(o, "a", "Z").i() == 0
-                || self.runtime.field(o, "k", "Z").i() == 0
-                || self.runtime.field(o, "n", "I").i() == 0
-            {
-                continue;
-            }
-            if active == 6 || active == 7 || active == 9 {
-                if pending == 0 && request == 7 && active != 9 {
-                    self.runtime.put(o, "i", "I", V::I(request));
-                }
-                self.runtime.put(o, "d", "I", V::I(0));
-                continue;
-            }
-            if active != 0 && fx != 0 {
-                self.runtime
-                    .call(fx, "stop", "()V", &[])
-                    .map_err(|e| self.error(e))?;
-            }
-            let (effect, position) = match request {
-                1 => match active {
-                    1 => (2, 585000),
-                    2 => (3, 1145000),
-                    _ => (1, 39000),
-                },
-                2 => (4, 1511000),
-                3 => (5, 2057000),
-                4 => (6, 2252000),
-                5 => (7, 5000000),
-                6 => (8, 7450000),
-                7 => (9, 3760000),
-                _ => {
-                    self.runtime.put(o, "d", "I", V::I(0));
-                    continue;
-                }
-            };
-            if fx != 0 {
-                self.runtime.put(o, "o", "I", V::I(effect));
-                self.runtime.put(o, "p", "J", V::J(self.runtime.now as i64));
-                self.runtime
-                    .call(fx, "setMediaTime", "(J)J", &[V::J(position)])
-                    .map_err(|e| self.error(e))?;
-                self.runtime
-                    .call(fx, "start", "()V", &[])
-                    .map_err(|e| self.error(e))?;
-            }
-            self.runtime.put(o, "d", "I", V::I(0));
+            crate::game::sound::poll(&mut self.runtime, sound)
+                .map_err(|error| self.error(error))?;
         }
         Ok(())
     }

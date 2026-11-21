@@ -26,19 +26,24 @@ with tempfile.TemporaryDirectory(prefix='zelda-validation-',dir=root/'target') a
     run([binary,'--replay',root/'reference/opening-replay.json','--save-dir',temp/'replay'])
     run([binary,'--replay',root/'reference/menu-replay.json','--save-dir',temp/'menus','--screenshot',root/'target/menu-check.png'])
 run([root/'target/release/examples/behavior_check'])
+run([root/'target/release/examples/catalog_check'])
 if shutil.which('javac') and shutil.which('java'):
     work=root/'target/reference-run'
     work.mkdir(exist_ok=True)
     emulator=root/'emulator/freej2me_plus.jar'
-    run(['javac','-cp',emulator,'-d',work,root/'reference/ReferenceHarness.java',root/'reference/BehaviorOracle.java'])
+    run(['javac','-cp',emulator,'-d',work,root/'reference/ReferenceHarness.java',root/'reference/BehaviorOracle.java',root/'reference/CatalogOracle.java'])
     cp=str(work)+os.pathsep+str(emulator)
-    for harness in ['BehaviorOracle','ReferenceHarness']:
+    for harness in ['BehaviorOracle','ReferenceHarness','CatalogOracle']:
         with (root/'target'/f'{harness}.log').open('w') as log:
             run(['java','-Djava.awt.headless=true','-Dfile.encoding=ISO_8859_1','-cp',cp,harness,root/'TheLegendOfZeldaMobile-beta4.jar',root/'target'],cwd=work,stdout=log,stderr=subprocess.STDOUT)
     native=json.loads((root/'target/native-behavior.json').read_text())
     original=json.loads((root/'target/reference-behavior.json').read_text())
     if native!=original:raise SystemExit('FAIL: native behavior differs from the original JAR; inspect target/*-behavior.json')
     print('PASS: seven behavior snapshots and all original save bytes match.')
+    native_catalog=json.loads((root/'target/native-catalog.json').read_text())
+    reference_catalog=json.loads((root/'target/reference-catalog.json').read_text())
+    if native_catalog!=reference_catalog:raise SystemExit('FAIL: sprite catalogs differ from the original JAR; inspect target/*-catalog.json')
+    print('PASS: all 2,048 sprite signatures, cache slots, reuse and aging cases match.')
     print('\n'.join(line for line in (root/'target/ReferenceHarness.log').read_text(errors='replace').splitlines() if line.startswith(('REFERENCE state','OPENING PIXEL'))))
 else:print('Java comparison skipped: Java/Javac are unavailable. All native checks ran.')
 print('Validation complete.')

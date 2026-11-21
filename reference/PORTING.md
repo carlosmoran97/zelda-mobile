@@ -7,47 +7,67 @@ The manifest calls it version 4.12, MIDP 2.0 / CLDC 1.1. The archive contains
 
 ## How the game runs
 
-CFR recovered 19,146 lines of readable Java under `reference/java`. Obfuscation
-produces invalid variables and ambiguous reconstructed control flow in several
-large methods. This readable output is an inspection aid, rather than the source
-of executable behavior.
+The executable game is maintained directly in `src/game/`. These Rust files are
+its source of truth: edit them and build with Cargo. There is no Java-to-Rust
+compiler, build-time translation step, operand stack, or bytecode program counter.
+Neither the original JAR nor a Java installation is needed to build or play.
 
-`scripts/translate.py` reads the original class files and translates all 103
-executable methods (73,228 JVM instructions) into 8,391 Rust control-flow blocks.
-Each method is a Rust function in `src/generated`; integer/float operations,
-branches, method calls, inherited fields, and exception handlers become Rust code.
-`reference/translation.json` records method signatures and coverage.
+The first restoration mechanically translated 103 methods (73,228 JVM
+instructions) into 8,391 control-flow blocks. That representation has been
+retired. `reference/translation.json` records its historical coverage; it is not
+an input to the native game. CFR's 19,146 lines under `reference/java/` remain an
+inspection aid. The decompiler could not completely reconstruct some large
+methods, so the native behavior is checked against the unmodified JAR rather
+than relying on that Java as compilable source.
 
-The result is compiled ahead of time by Rust/LLVM. The running app loads **no Java
-classes or bytecode** and contains no JVM or general-purpose bytecode interpreter.
-The tagged values and object arena in `src/runtime.rs` preserve the original
-program's field, array, vector, and reference semantics. Collection runs only
-between complete game calls, when native roots are known.
+Gameplay functions have typed arguments and descriptive names, such as
+`world::load_map`, `item::collect`, and `player::encode_save`. Field accesses use
+named keys such as `fields::player::HEALTH`. Branches and loops are native Rust;
+complex shared exits use labeled blocks to keep their side effects in one place.
+A few large routines align these exits and use `rustfmt::skip` to avoid excessive
+indentation. Their branch logic is still ordinary, directly editable Rust.
+Fields whose meaning has not been established retain `STATE_*` names with their
+original reference identifier documented in `fields.rs`, rather than invented
+explanations.
 
-Native host services implement the exact API subset this game uses. Unknown
-services fail explicitly. Images, clipping, translations, anchors, transforms,
-fonts, streams, original big-endian record payloads, and Java's 48-bit PRNG are
-implemented in Rust. Timer callbacks preserve the original 70ms/1000ms periods.
-The sound worker's finite polling work runs cooperatively; actual MIDI/WAV
-rendering runs on SDL's audio thread.
+`src/runtime.rs` supplies object identity, arrays, vectors, image handles and the
+platform services needed by this game. The tagged values and object arena retain
+reference and save semantics; collection runs only between complete game calls,
+when native roots are known. Legacy class/field/method signatures are isolated
+in `src/game/compat.rs` for the service boundary and reference/audit tools. They
+do not contain executable game logic. Typed service wrappers live in `host.rs`.
 
-## Recovered class roles
+Unknown services fail explicitly. Images, clipping, translations, anchors,
+transforms, fonts, streams, original big-endian record payloads, and Java's
+48-bit PRNG are implemented in Rust. Timer callbacks preserve the original
+70ms/1000ms periods. The sound worker's finite polling work runs cooperatively;
+actual MIDI/WAV rendering runs on SDL's audio thread.
 
-| Class | Role |
-|---|---|
-| Zelda | MIDlet lifecycle and softkey commands |
-| k | Main game canvas, menus, input, progression, save slots |
-| j | World/map loading, collision, transitions and entity updates |
-| h | Player, inventory, progression flags, original save encoder/decoder |
-| l | Enemy and boss behavior/rendering |
-| c | Collectible and equipment behavior |
-| n | Map objects, triggers, scenery and scripted interactions |
-| o | Sprite/resource catalogs |
-| p | Projectiles and visual effects |
-| f | Common drawable position and bounds |
-| a / m | One-second / 70ms timer callbacks |
-| b | Music selection, sound effects, volume and effect priority |
-| d / e / g / i | Small state records, portals, effects and room history |
+## Native module guide and recovered class roles
+
+All gameplay paths below are relative to `src/game/`. `canvas.rs` and `world.rs`
+are entry points that group their logic into smaller files in `canvas/` and
+`world/` (controls, saves, inventory, collision, rooms, combat and rendering).
+
+| Original class | Native module | Responsibility |
+|---|---|---|
+| Zelda | `lifecycle.rs` | Application lifecycle and softkey commands |
+| k | `canvas.rs` | Main game canvas, menus, input, progression and save slots |
+| j | `world.rs` | Map loading, collision, transitions and entity updates |
+| h | `player.rs`, `player_save.rs` | Player drawing, inventory/progression state, Triforce counting and the 172-byte save format |
+| l | `enemy.rs` | Enemy and boss behavior and drawing |
+| c | `item.rs` | Collectibles, equipment, shops and pickup effects |
+| n | `map_object.rs` | Scenery, triggers and scripted interactions |
+| o | `resources.rs` | Explicit sprite catalogs, shared sheets and cache lifetimes |
+| p | `projectile.rs` | Projectiles and visual effects |
+| f | `drawable.rs` | Common drawable position and bounds |
+| a / m | `second_timer.rs`, `frame_timer.rs` | One-second simulation flags / 70ms repaint and command callbacks |
+| b | `sound.rs` | Music selection, effects, volume and priority; `src/audio.rs` performs synthesis |
+| d / e / g / i | `motion.rs`, `portal.rs`, `trail_point.rs`, `room_history.rs` | Small motion, portal, hookshot-trail and room-history records |
+
+For example, change pickup rules in `item::collect`, movement checks in
+`world/collision.rs` (`world::can_player_move`), sprite choices in `resources.rs`, or save layout in
+`player_save.rs`. Changes to these files survive reference recovery.
 
 ## XMOB map format
 
@@ -70,7 +90,7 @@ placements, 171 items, 10,631 objects and 63 text entries across the map variant
 ## Saves and desktop adaptations
 
 The three original stores (`ZeldaSave`, `ZeldaSave2`, `ZeldaSave3`) retain the
-172-byte player payload produced by the translated original encoder. Integers
+172-byte player payload encoded directly by `player_save.rs`. Integers
 are big endian; booleans and byte fields preserve their original encoding.
 `ZeldaSettings` remains separate. Native files wrap each payload in `ZMR1`, a
 four-byte big-endian payload length, then the original bytes. Writes replace the
