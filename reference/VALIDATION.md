@@ -30,7 +30,7 @@ baselines for the original platform's 13/15/17-pixel fonts. Native rendering use
 these static atlases without Java.
 
 The completed application was moved to `/Applications/Zelda Mobile.app`.
-`Play Zelda.command` recognizes that installed location as well as local builds.
+Local builds are produced at `dist/Zelda Mobile.app`.
 
 The reference game is run headlessly for deterministic graphics/state captures.
 Its emulator audio services are not used as an audio oracle. Native MIDI playback

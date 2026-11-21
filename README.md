@@ -1,7 +1,7 @@
 # Zelda Mobile — native Rust version
 
-Double-click **Play Zelda.command**, or open **Zelda Mobile** in Applications.
-The launcher also recognizes a local build under `dist/Zelda Mobile.app`.
+Open **Zelda Mobile** in Applications, or open a local build at
+`dist/Zelda Mobile.app`.
 The native Apple Silicon app includes the complete supplied beta's game logic,
 maps, graphics and music. Playing requires no Java, emulator, Cargo, or network.
 
@@ -50,10 +50,10 @@ Emulator saves remain separate and are not automatically imported.
 
 ## Original J2ME version
 
-**Play Original J2ME.command** runs the unmodified JAR in the existing
-FreeJ2ME-Plus 1.53 installation. Keep `emulator/` to preserve its settings and saves.
+The unmodified JAR and FreeJ2ME-Plus 1.53 remain available as a development
+reference. Keep `emulator/` to preserve its settings and saves.
 Its phone controls are arrows, Return (fire), Q/W (softkeys), number keys,
-E/R (`*` / `#`), and +/- for scaling. Java is required for this reference launcher.
+E/R (`*` / `#`), and +/- for scaling. Java is required to run the original J2ME version.
 
 ## Build
 
