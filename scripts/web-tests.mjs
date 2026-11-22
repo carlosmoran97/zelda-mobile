@@ -233,7 +233,7 @@ function mockBrowserAudio(t, session) {
       this.state = 'suspended';
       this.sampleRate = 48000;
       this.destination = {};
-      this.audioWorklet = { addModule: async () => { events.push('load-worklet'); } };
+      this.audioWorklet = { addModule: async url => { events.push('load-worklet'); this.workletURL = url.href; } };
       contexts.push(this);
     }
     createBuffer(channels, frames, rate) {
@@ -252,14 +252,15 @@ function mockBrowserAudio(t, session) {
     async close() { this.state = 'closed'; }
   });
   install('AudioWorkletNode', class {
-    port = { postMessage() {} };
+    port = { postMessage() {}, close() { events.push('close-port'); } };
     connect() {}
+    disconnect() { events.push('disconnect-worklet'); }
   });
   install('Worker', class {
     postMessage(message) {
       if (message.type === 'init') queueMicrotask(() => this.onmessage({ data: { type: 'ready' } }));
     }
-    terminate() {}
+    terminate() { events.push('terminate-worker'); }
   });
   install('MessageChannel', class { port1 = {}; port2 = {}; });
   return { events, contexts };
@@ -343,6 +344,33 @@ test('unsupported browser audio reports failure without rejecting gameplay', asy
   assert.equal(output.enabled, false);
   assert.equal(output.loading, null);
   assert.match(warnings[0], /keep playing/);
+});
+
+test('audio uses the app asset base and releases its browser resources on unmount', async t => {
+  const { contexts, events } = mockBrowserAudio(t, undefined);
+  const warnings = [];
+  const output = new AudioOutput(() => {}, message => warnings.push(message), new URL('https://example.com/zelda-mobile/'));
+  await output.setEnabled(true);
+  assert.equal(contexts[0].workletURL, 'https://example.com/zelda-mobile/audio-worklet.js');
+  await output.dispose();
+  assert.equal(contexts[0].state, 'closed');
+  assert.ok(events.includes('terminate-worker'));
+  assert.ok(events.includes('disconnect-worklet'));
+  assert.ok(events.includes('close-port'));
+  assert.deepEqual(warnings, []);
+});
+
+test('unmount during audio initialization never revives a closed audio context', async t => {
+  const { contexts } = mockBrowserAudio(t, undefined);
+  const warnings = [];
+  const output = new AudioOutput(() => {}, message => warnings.push(message));
+  const loading = output.setEnabled(true);
+  await output.dispose();
+  await loading;
+  assert.equal(contexts[0].state, 'closed');
+  assert.equal(output.ready, false);
+  assert.equal(output.enabled, false);
+  assert.deepEqual(warnings, []);
 });
 
 test('D-pad sectors, neutral zone, and keyboard mappings', () => {

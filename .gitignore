@@ -3,6 +3,8 @@
 /java/tools/cfr-*.jar
 /java/target/
 /dist/
+/web/node_modules/
+/web/public/
 *.log
 .DS_Store
 __pycache__/

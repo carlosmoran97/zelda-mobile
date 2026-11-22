@@ -25,7 +25,10 @@ atlases are included, so a normal build does not require Java or the original JA
 
 ## Browser build
 
-Install Rust, Python 3.11+, and (for the checks) Node.js 22+. Build with:
+Install Rust, Python 3.11+, and Node.js 22.12+ (including npm). The browser
+interface is a client-side React app built with Vite, Tailwind CSS, and shadcn/ui.
+The Rust game still runs locally through WebAssembly; there is no application server.
+Build with:
 
 ```sh
 python3 scripts/build_web.py --setup
@@ -35,9 +38,26 @@ python3 -m http.server 8080 --directory dist/web
 Open `http://localhost:8080`. The setup option installs the
 `wasm32-unknown-unknown` target and a matching, pinned `wasm-bindgen` CLI into
 `target/web-tools`. Later builds can omit `--setup`; add `--offline` once Cargo
-dependencies have been fetched. No SDL, CMake, Java, or macOS fonts are needed
-for the web build. Keep the HTTP server running; opening the HTML file directly
+and npm dependencies have been fetched. The build installs the locked frontend
+dependencies with `npm ci`, prepares `web/public/`, then runs Vite. No SDL, CMake,
+Java, or macOS fonts are needed for the web build. Keep the HTTP server running;
+opening the HTML file directly
 does not support Wasm loading.
+
+For React development with hot reload:
+
+```sh
+python3 scripts/build_web.py --prepare-only --setup
+npm run dev --prefix web
+```
+
+Open the local URL printed by Vite. After changing Rust code, run the prepare
+command again (without `--setup`) and refresh the browser. React components live
+in `web/src/components/`, the game lifecycle in `web/src/game-session.js`, and
+the React integration in `web/src/hooks/use-game.js`. `web/components.json`
+configures shadcn with React Server Components disabled. To add a component,
+run `npx shadcn@latest add <component>` from `web/`, following the
+[shadcn Vite guide](https://ui.shadcn.com/docs/installation/vite).
 
 The static output is `dist/web/`. Resource URLs are relative, including worker
 and audio assets, so hosting beneath a repository path works. The large soundfont
@@ -45,9 +65,10 @@ is fetched only when sound is enabled. A dedicated worker runs the Rust synth at
 the browser audio sample rate and transfers PCM blocks to an AudioWorklet.
 No shared-memory or cross-origin isolation headers are required.
 
-Run `node --test scripts/web-tests.mjs` after building for deterministic tests of
+Run `npm test --prefix web` after building for deterministic tests of
 the actual Wasm game, persistent records, input arbitration, touch helpers, and
-audio queue. `src/assets.rs` and `storage::RecordStore` form the host-service
+audio queue, React mount/unmount cleanup, and pause/resume behavior.
+`src/assets.rs` and `storage::RecordStore` form the host-service
 boundary; native construction continues to use filesystem-backed services.
 
 The **Browser game** Actions workflow checks pull requests and publishes `main`

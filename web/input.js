@@ -11,6 +11,8 @@ export function padAction(x, y, rect) {
 }
 
 export function bindControls(deck, handlers) {
+  const events = new AbortController();
+  const listen = (target, type, callback) => target.addEventListener(type, callback, { signal: events.signal });
   const held = new Map();
   const pointers = new Map();
   const pad = deck.querySelector('.dpad');
@@ -26,7 +28,7 @@ export function bindControls(deck, handlers) {
     pointers.delete(event.pointerId);
     update(`pointer:${event.pointerId}`, -1);
   }
-  deck.addEventListener('pointerdown', event => {
+  listen(deck, 'pointerdown', event => {
     if (!handlers.active() || (event.pointerType === 'mouse' && event.button !== 0)) return;
     const button = event.target.closest('[data-action]');
     const isPad = pad.contains(event.target);
@@ -37,39 +39,42 @@ export function bindControls(deck, handlers) {
     target.setPointerCapture(event.pointerId);
     update(`pointer:${event.pointerId}`, isPad ? padAction(event.clientX, event.clientY, pad.getBoundingClientRect()) : Number(button.dataset.action));
   });
-  deck.addEventListener('pointermove', event => {
+  listen(deck, 'pointermove', event => {
     if (pointers.get(event.pointerId)?.isPad) {
       event.preventDefault();
       update(`pointer:${event.pointerId}`, padAction(event.clientX, event.clientY, pad.getBoundingClientRect()));
     }
   });
-  for (const name of ['pointerup', 'pointercancel', 'lostpointercapture']) deck.addEventListener(name, release);
-  deck.addEventListener('contextmenu', event => event.preventDefault());
+  for (const name of ['pointerup', 'pointercancel', 'lostpointercapture']) listen(deck, name, release);
+  listen(deck, 'contextmenu', event => event.preventDefault());
   // Assistive technology and Space activation may synthesize a click alone.
-  deck.addEventListener('click', event => {
+  listen(deck, 'click', event => {
     if (event.detail !== 0 || !handlers.active()) return;
     const button = event.target.closest('[data-action]');
     if (!button || button.disabled) return;
     update('accessible:button', Number(button.dataset.action));
     update('accessible:button', -1);
   });
-  window.addEventListener('keydown', event => {
+  listen(window, 'keydown', event => {
     if (!handlers.active()) return;
+    // Let focused links and buttons keep their native keyboard activation.
+    if (event.code === 'Enter' && event.target.closest?.('a, button')) return;
     if (event.code === 'Escape') { event.preventDefault(); if (!event.repeat) handlers.back(); return; }
     const action = keyAction(event.code);
     if (action === undefined || event.altKey || event.ctrlKey || event.metaKey) return;
     event.preventDefault();
     if (!event.repeat) update(`key:${event.code}`, action);
   });
-  window.addEventListener('keyup', event => {
+  listen(window, 'keyup', event => {
     if (keyAction(event.code) === undefined) return;
     update(`key:${event.code}`, -1);
   });
-  return { clear() {
+  function clear() {
     for (const [id, { target }] of pointers) {
       if (target.hasPointerCapture(id)) target.releasePointerCapture(id);
     }
     pointers.clear();
     for (const source of [...held.keys()]) update(source, -1);
-  } };
+  }
+  return { clear, dispose() { clear(); events.abort(); } };
 }

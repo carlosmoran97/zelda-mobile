@@ -1,5 +1,5 @@
 export class AudioOutput {
-  constructor(update, warn) {
+  constructor(update, warn, assetBase = new URL(/* @vite-ignore */ './', import.meta.url)) {
     this.update = update;
     this.warn = warn;
     this.enabled = false;
@@ -7,6 +7,8 @@ export class AudioOutput {
     this.paused = true;
     this.music = null;
     this.effect = null;
+    this.assetBase = assetBase;
+    this.disposed = false;
   }
   send(commands) {
     for (const command of commands) {
@@ -42,14 +44,17 @@ export class AudioOutput {
     this.context = new Context({ latencyHint: 'interactive' });
     // Resume immediately within the user gesture, before fetching any assets.
     await this.resume();
-    await this.context.audioWorklet.addModule(new URL('./audio-worklet.js', import.meta.url));
+    if (this.disposed) return;
+    await this.context.audioWorklet.addModule(new URL('audio-worklet.js', this.assetBase));
+    if (this.disposed) return;
     this.node = new AudioWorkletNode(this.context, 'zelda-audio', { numberOfInputs: 0, numberOfOutputs: 1, outputChannelCount: [2] });
     this.node.onprocessorerror = () => { void this.fail(new Error('Audio playback stopped unexpectedly. Tap Sound to retry.')); };
     this.node.connect(this.context.destination);
-    this.worker = new Worker(new URL('./audio-worker.js', import.meta.url), { type: 'module' });
+    this.worker = new Worker(new URL('audio-worker.js', this.assetBase), { type: 'module' });
     const channel = new MessageChannel();
     await new Promise((resolve, reject) => {
       const timeout = setTimeout(() => reject(new Error('Sound loading timed out. Tap Sound to retry.')), 90000);
+      this.cancelLoading = () => { clearTimeout(timeout); resolve(); };
       this.worker.onmessage = ({ data }) => {
         if (data.type === 'ready') { clearTimeout(timeout); resolve(); }
         else if (data.type === 'error') {
@@ -64,6 +69,8 @@ export class AudioOutput {
       };
       this.worker.postMessage({ type: 'init', sampleRate: this.context.sampleRate, port: channel.port1 }, [channel.port1]);
     });
+    this.cancelLoading = null;
+    if (this.disposed) return;
     this.ready = true;
     // Only the current music survives loading; old effects are never replayed.
     if (this.music) this.worker.postMessage({ type: 'commands', commands: [this.music] });
@@ -72,6 +79,7 @@ export class AudioOutput {
     this.update();
   }
   async setEnabled(enabled) {
+    if (this.disposed) return;
     this.enabled = enabled;
     this.update();
     if (enabled) {
@@ -80,6 +88,7 @@ export class AudioOutput {
         // An existing suspended context also needs resuming during this gesture.
         else await this.resume();
         await this.loading;
+        if (this.disposed) return;
         if (this.enabled && !this.paused) {
           this.node.port.postMessage({ type: 'flush' });
           await this.resume();
@@ -101,6 +110,7 @@ export class AudioOutput {
     } catch (error) { await this.fail(error); }
   }
   async fail(error) {
+    if (this.disposed) return;
     this.ready = false;
     this.enabled = false;
     this.loading = null;
@@ -109,5 +119,14 @@ export class AudioOutput {
     this.context = null;
     this.warn(`Sound unavailable: ${String(error.message || error)} You can keep playing.`);
     this.update();
+  }
+  async dispose() {
+    this.disposed = true;
+    this.enabled = false;
+    this.cancelLoading?.();
+    this.worker?.terminate();
+    this.node?.disconnect();
+    this.node?.port.close();
+    try { await this.context?.close(); } catch { /* Already closed. */ }
   }
 }

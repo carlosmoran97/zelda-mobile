@@ -27,3 +27,10 @@ for browser bindings, the same RustySynth synthesizer in a Web Worker, and Web
 Audio for output. SDL3 and the macOS system fonts are not part of the web build.
 The GeneralUser GS license is included beside the downloadable soundfont and
 linked from the browser credits page.
+
+The client-side interface uses [React](https://react.dev/) (MIT),
+[shadcn/ui](https://ui.shadcn.com/) (MIT), [Radix UI](https://www.radix-ui.com/)
+(MIT), and [Lucide](https://lucide.dev/) (ISC). [Vite](https://vite.dev/) (MIT)
+and [Tailwind CSS](https://tailwindcss.com/) (MIT) build the static interface.
+Runtime JavaScript dependency licenses are bundled with the Rust dependency
+licenses and linked from the React credits screen.

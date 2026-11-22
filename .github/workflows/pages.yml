@@ -29,11 +29,13 @@ jobs:
           cache-directories: target/web-tools
       - uses: actions/setup-node@v6
         with:
-          node-version: '22'
+          node-version: '22.14.0'
+          cache: npm
+          cache-dependency-path: web/package-lock.json
       - name: Build browser game
         run: python3 scripts/build_web.py --setup
       - name: Test browser runtime and controls
-        run: node --test scripts/web-tests.mjs
+        run: npm test --prefix web
       - uses: actions/configure-pages@v5
         if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
       - uses: actions/upload-pages-artifact@v4
